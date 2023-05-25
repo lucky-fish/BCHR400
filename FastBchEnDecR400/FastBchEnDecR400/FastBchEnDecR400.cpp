@@ -3239,16 +3239,25 @@ int main()
 
 	unsigned int seed,userSeed;
 
-	seed=0;
-	userSeed=0;
+	seed=0;										/* 0: generate seed from time, non-0: seed to use */
+	userSeed=0;								/* 0: random seed */
 	// Some of these initializations are to make compiler and lint happy
 	errFlg=0;
-	minErrsToSim=0;
-	maxErrsToSim=0;
-	passesToDo=0;
-	CWsPerPass=0;
-	doCompareFlg=0;
-	randomDataFlg=0;
+	minErrsToSim=1;
+	maxErrsToSim=1;
+	passesToDo=1;							/* number of encode decode cycles */
+	CWsPerPass=1;							/* number of CW per each encode decode cycle */
+	doCompareFlg=1;						/* statistic only, compare original and decoded codeword */
+	randomDataFlg=1;					/* 1: randaom data */
+
+	/* use default values instead of get from user input */
+	gblMParm = 5;							/* order */
+	toDoCode = 0;							/* generate CWs, apply errors, perform correction */
+	gblRootFindOption = 0;		/* root finder 0: fast Chien search, 1: Berlekamp trace (BTA) */
+	gblFFPoly = 0;					  /* prime poly, 0: use default poly, non-zero: poly to use  */
+	gblTParm =  3;						/* max correctable error bits */
+	gblNumDataBytes = 2;			/* number of input data bytes */
+
 	printf("\n\nFast Encoder-Decoder for binary BCH codes using parallel");
 	printf("\ntechniques for encode and syndrome generation.\n");
 	printf("\nCopyright (C) Neal Glover 1999,2000,2008,2010,2011 (boglover@msn.com).\n");
@@ -3262,7 +3271,7 @@ int main()
 	printf("\nIF THIS HAPPENS YOU WILL NEED TO CLOSE THE PROGRAM AND START OVER.");
 	printf("\n-----------------------------------------------------------------");
 	printf("\n\nEnter any number to continue.\n");
-	(void)scanf_s("%d",&junk);
+
 	// Get the major function the program is to perform on this run
 	do{
 		// 0,11,22,33 Trying to avoid toDoCode being confused with any other entry
@@ -3275,7 +3284,7 @@ int main()
 		printf("\nwrite the corrected CWs back to a new file on disk.");
 		printf("\nEnter ---33--- to generate test CWs and write them to a new");
 		printf("\nfile on disk.\n");
-		(void)scanf_s("%d", &toDoCode);
+
 	}while ((toDoCode/10>3 || toDoCode/10<0) || ((toDoCode/10)!=(toDoCode % 10)));
 	toDoCode=toDoCode % 10;
 	if (toDoCode==0){
@@ -3291,7 +3300,6 @@ int main()
 		printf("\nrate is not significantly greater than the rate you compute.");
 		printf("\nIf you don't understand, consult a professional.");
 		printf("\nEnter any number to continue.\n");
-		(void)scanf_s("%d",&junk);
 	}
 	if (toDoCode!=3){
 		do{
@@ -3302,14 +3310,12 @@ int main()
 			printf("\nis faster for a data block size of 1024 bytes and");
 			printf("\nGF(2^14)and for between 6 and 64 errors occurring. I have");
 			printf("\nnot performed timing tests ourside that range.\n");
-			(void)scanf_s("%d", &gblRootFindOption);
 		}while (gblRootFindOption < 0 || gblRootFindOption>1);
 	}else{
 		gblRootFindOption=1; // Should not matter, but set to something
 	}
 	do{
 		printf("\nEnter m of GF(2^m), must be between %d & %d.\n",MINMPARM,MAXMPARM);
-		(void)scanf_s("%d", &gblMParm);
 	}while (gblMParm<MINMPARM || gblMParm > MAXMPARM);
 	// Compute finite field size
 	gblFFSize=1;
@@ -3321,7 +3327,7 @@ int main()
 		printf("\nchange MAXMPARM and MAXFFSIZE in the source code and restart.\n");
 		printf("\n************ ENTER ANY NUMBER TO EXIT ***********\n");
 		(void)scanf_s("%d",&junk);
-		return(0);
+		return(-1);
 	}
 	gblMParmOdd = gblMParm % 2;
 	gblNParm=gblFFSize - 1;	// n = (2^m)-1
@@ -3331,26 +3337,27 @@ int main()
 	do{
 		printf("\nEnter primitive polynomial in decimal (Example- enter 67 for 1000011).");
 		printf("\nEnter 0 to have pgm select the primitive poly.\n");
-		(void)scanf_s("%d",&gblFFPoly);
 	}while ((gblFFPoly<=gblFFSize || gblFFPoly>=gblFFSize*2) && gblFFPoly!=0);
+
 	if (gblFFPoly>0 && (gblFFPoly<=gblFFSize || gblFFPoly>=2*gblFFSize)){
 		printf("\nThe primitive polynomial you entered is not a valid polynomial\n");
 		printf("\nof degree m (you entered m above).  Restart and try again.\n");
 		printf("\n************ ENTER ANY NUMBER TO EXIT ***********\n");
 		(void)scanf_s("%d",&junk);
-		return(0);
+		return(-2);
 	}
 	// Get correction capability
 	do{
 		printf("\nEnter 't', the max # of single bit errors the code will be");
 		printf("\ndesigned to correct.  t*m must be < 2^m-1 and t must be less");
 		printf("\nthan or equal to MAXCORR (a define in the source code).\n");
-		(void)scanf_s("%d", &gblTParm);
 	}while (gblTParm > MAXCORR || gblTParm*gblMParm>=gblFFSize);
+
 	if (gblFFPoly==0){ // gblFFPoly will be greater than 0 if user entered a poly above
 		pickFieldGenPoly(); // PICK FINITE FIELD GENERATOR POLYNOMIAL
 	}
 	printf("\ngblFFPoly=%d  gblFFSize=%d\n",gblFFPoly,gblFFSize);
+
 	bchInit();  // GENERATE LOG AND ALOG TABLES
 	initStatus = chkLogAlogTbls();
 	if (initStatus>ZERO){
@@ -3360,26 +3367,28 @@ int main()
 		printf("\nEXIT and try again.\n");
 		printf("\n************ ENTER ANY NUMBER TO EXIT ***********\n");
 		(void)scanf_s("%d",&junk);
-		return(0);
+		return(-3);
 	}
+
 	tmp=genCodeGenPoly();// GENERATE CODE GENERATOR POLYNOMIAL (CGP)
 	// Call or previous line will set gblCgpDegree
 	if (tmp!=0){
 		printf("\n***** Fatal error in cgp generation *****  error flag %d.",tmp);
 		printf("\n************ ENTER ANY NUMBER TO EXIT ***********\n");
 		(void)scanf_s("%d",&junk);
-		return(0);
+		return(-4);
 	}
 	gblNumRedunBits = gblCgpDegree; //Do not try to make this # evenly divisible by 8
 	gblNumRedunBytes = (gblCgpDegree)/8;
 	if ((gblCgpDegree % 8) >0){
 		gblNumRedunBytes++;
 	}
+
+
 	// Get number of data bytes
 	do{
 		tmp=(gblNParm-gblCgpDegree)/8;
 		printf("\n\nEnter data length in bytes, must be <= %d. \n",tmp);
-		(void)scanf_s("%d", &gblNumDataBytes);
 	}while (gblNumDataBytes>tmp || gblNumDataBytes<0);
 	gblNumCodewordBytes = gblNumDataBytes+gblNumRedunBytes;
 	gblNumDataBits = gblNumDataBytes*8;
@@ -3396,22 +3405,20 @@ int main()
 			}
 			printf("\nEnter max # errors to apply.");
 			printf("\nMust be less than or equal to %d.\n",tmpMax);
-			(void)scanf_s("%d", &maxErrsToSim);
 		}while (maxErrsToSim>tmpMax || maxErrsToSim<0);
+
 		if(maxErrsToSim>gblTParm){
 			printf("\nYou have elected to sim UNCORR as well as CORR errors.\n");
 		}
 		do{
 			printf("\nEnter min # errors to apply.");
 			printf("\nMust be less than or equal to %d.\n",maxErrsToSim);
-			(void)scanf_s("%d", &minErrsToSim);
 		}while (minErrsToSim>maxErrsToSim || minErrsToSim<0);
 		if (toDoCode==0){
 			do{
 				printf("\nEnter 1 for random data.");
 				printf("\nEnter 0 for all zeros data and to skip encoding.");
 				printf("\nChoose 0 if you want to time decode only.\n");
-				(void)scanf_s("%d", &randomDataFlg);
 			}while (randomDataFlg!=0 && randomDataFlg!=1);
 		}
 		else{ // Do this if toDoCode==3
@@ -3430,25 +3437,21 @@ int main()
 			printf("\nseed must be >0 and <=4294967295.  This will");
 			printf("\ncontrol the seed for the 1st pass only, after");
 			printf("\nthat it will be random.\n");
-			(void)scanf_s("%d", &userSeed);
 		}
 		do{
 			printf("\nEnter # of codewords to generate per pass.");
 			printf("\nThis # should be large for timing accuracy.");
 			printf("\nRecommend first try 100000\n");
-			(void)scanf_s("%d", &CWsPerPass);
 		}while (CWsPerPass<1);
 		do{
 			printf("\nEnter # of passes to do.");
 			printf("\nA report will be printed after each pass.");
 			printf("\nTo verify code changes make this # large enough");
 			printf("\nto prove the code for the parameters you entered.\n");
-			(void)scanf_s("%d", &passesToDo);
 		}while (passesToDo<1);
 		do{
 			printf("\nEnter 1 to compare corrected CW with original.");
 			printf("\nEnter 0 to skip the compare for MORE ACCURATE timings.\n");
-			(void)scanf_s("%d", &doCompareFlg);
 		}while (doCompareFlg!=0 && doCompareFlg!=1);
 	}
 	loopAllCWsCnt=1; // For all cases except toDoCode==1
@@ -3581,6 +3584,17 @@ int main()
 	printf("\n************ ENTER ANY NUMBER TO EXIT ***********\n");
 	(void)scanf_s("%d", &junk);
 	return(0);
+}
+
+//--------------------------------------------------------------------------
+int bch_init(int m, int t, int poly)
+{
+	gblMParm = m;						/* order, soi uses 5 */
+	gblFFPoly = poly;				/* prime poly, soi uses 55 */
+	gblTParm = t;						/* max correctable error bits, soi uses 3 */
+	gblNumDataBytes = 2;		/* data byte, soi uses 2 bytes */
+
+	return (0);
 }
 
 
