@@ -1,32 +1,32 @@
 //
 // FastBchEnDecR400.cpp  ----- SEE REVISION HISTORY BELOW -----
 //
-// COPYRIGHT STATEMENT: Copyright (C) Neal Glover 1999,2000,2008,2010 
-// (boglover@msn.com 303-466-5434). 
+// COPYRIGHT STATEMENT: Copyright (C) Neal Glover 1999,2000,2008,2010
+// (boglover@msn.com 303-466-5434).
 // LICENSE GRANT: A free non-exclusive, perpetual, irrevocable source
-// and object code license, with the following restrictions and warranty 
+// and object code license, with the following restrictions and warranty
 // disclaimer and without support or maintenance, is granted for the
-// use, modification, reproduction, distribution and sub-licensing of 
-// this code. 
-// RESTRICTIONS: All parts of this statement including copyright statement, 
+// use, modification, reproduction, distribution and sub-licensing of
+// this code.
+// RESTRICTIONS: All parts of this statement including copyright statement,
 // license grant, and warranty disclaimer must remain part of the source code
 // or parts thereof that you use.  All source code comments associated with
 // the parts of the code that you use must remain in the code.  The license
 // grant does not include the right to sell this code or part thereof as a separate
-// product.  
+// product.
 // WARRANTY DISCLAIMER: The author of this code does not warrant
-// that it is free of defects or that it is useful or fit for any purpose.  
-// The author does not warrant that this code will not violate 
+// that it is free of defects or that it is useful or fit for any purpose.
+// The author does not warrant that this code will not violate
 // intellectual property rights including patent rights or copyright rights
 // of third parties.  The author assumes no risk for your use
 // of this code.  If you use this code or parts thereof, it is at your own risk.
-// By using this code, you agree to hold the author of this code free and 
-// harmless of any loss, liability, damage or costs that may arise from 
+// By using this code, you agree to hold the author of this code free and
+// harmless of any loss, liability, damage or costs that may arise from
 // your use of this code.  This code is intended to be used for tutorial
-// purposes only.  If you use it for any other purpose it is at your own risk. 
+// purposes only.  If you use it for any other purpose it is at your own risk.
 // This code requires more testing.  You should not use it without first
 // performing exhaustive testing on it.  If you are not qualified to make
-// use of this code or parts thereof or to perform the required testing, 
+// use of this code or parts thereof or to perform the required testing,
 // seek the services of a qualified professional.
 // -----Neal Glover  boglover[at]msn.com  303-466-5434-----
 // -----June 6, 2010-----
@@ -40,11 +40,11 @@
 // Abandoned
 // --------------------------------------------
 // Revision 300
-// June 6, 2010  - First beta revision.  
+// June 6, 2010  - First beta revision.
 //               - Comment changes only.
 // --------------------------------------------
 // Revision 400
-// Sept. 9, 2010  - Added the BTA root finder. Can now 
+// Sept. 9, 2010  - Added the BTA root finder. Can now
 //                - select between BTA and a Chien Search.
 //                - Other small changes.
 // Oct. 10, 2011  - Changed MAXCORR to 64 and retested
@@ -66,62 +66,62 @@
 //
 // Global variables were used extensively in the test code.  The use of global
 // varaibles was avoided in core BCH functions that might be used as a guide
-// for designing functions of a firmware product.  There are a few global 
+// for designing functions of a firmware product.  There are a few global
 // variables in bchDecode to assist testing.  They are marked "for testing only"
-// and may be deleted in the function you write to integrate into a firmware 
-// product. 
-// 
+// and may be deleted in the function you write to integrate into a firmware
+// product.
+//
 // It is recommended that you run lint or a lint like program to help find subtle
-// errors in your code, especially array boundary problems.  Another way to 
+// errors in your code, especially array boundary problems.  Another way to
 // help find such problems is to make a copy of your code and convert it to "C#" just
 // for extensive testing. Converter programs exist to convert "C" to "C#".
 //
-// It is possible to add an (x-1) factor to the code generator poly of a 
+// It is possible to add an (x-1) factor to the code generator poly of a
 // binary bch code to increase the detection (not correction) capability
 // by one.  Support for this is not included in this program.
 //
-// The inner most Chien search loop of this code is unrolled.  It is possible 
+// The inner most Chien search loop of this code is unrolled.  It is possible
 // that speed can be improved further by unrolling some of the other loops.
-// To unroll a loop, replicate the contents of the loop to eliminate loop 
+// To unroll a loop, replicate the contents of the loop to eliminate loop
 // overhead.  If for a particular loop the number of times the body
-// is executed changes dynamically, just branch down into the 
+// is executed changes dynamically, just branch down into the
 // replications to achieve the equivalent of looping the body the
 // correct number of times.  For an example of loop unrolling see the Chien
 // search function.  My original knowledge of unrolling loops came from
 // the Earl Cohen Ph.D. thesis (Berkeley).  See also the Glover-Dudley
-// patent 4,839,896. 
+// patent 4,839,896.
 //
-// There are a number of places in the code where a mod operation is avoided 
+// There are a number of places in the code where a mod operation is avoided
 // because it is slow compared to the alternatives.
-// 
-// There are still many places in the code where it can be speeded up some.  
-// Some of these places are identified in code comments.  
+//
+// There are still many places in the code where it can be speeded up some.
+// Some of these places are identified in code comments.
 //
 // In this code the codeword is always stored in byte form even though the
 // code is a binary BCH code and regardless of the size of the finite field.
 // Finite field values such as syndromes and error location numbers are stored
-// in "int" data types.  This is done to make the program flexible to handle 
-// a wide range of finite field sizes.  For a particular implementation 
+// in "int" data types.  This is done to make the program flexible to handle
+// a wide range of finite field sizes.  For a particular implementation
 // you could try reducing the size of the values to save memory.  It is
 // possibe that this would affect speed but I am not sure in which direction.
 //
-// This code supports two root finders, Chien and BTA.  You will need to 
+// This code supports two root finders, Chien and BTA.  You will need to
 // test both to see which one best fits your requirements. For the parameter
 // range that I have tested the BTA algorithm is much faster than the Chien
 // search.  I have tested data block size 1024 bytes and GF(2^14) and
-// 6 to 64 errors. I have not performed timing tests ourside that range. 
-// It should be noted that the BTA algorithm is far more complicated than the 
-// Chien search. 
+// 6 to 64 errors. I have not performed timing tests ourside that range.
+// It should be noted that the BTA algorithm is far more complicated than the
+// Chien search.
 //
-// ANY FEEDBACK WILL BE GREATLY APPRECIATED! ALL INPUT WILL BE ACCEPTED 
+// ANY FEEDBACK WILL BE GREATLY APPRECIATED! ALL INPUT WILL BE ACCEPTED
 // ESPECIALLY FEEDBACK POINTING OUT ERRORS IN THE CODE OR SUGGESTIONS
 // FOR CODE IMPROVEMENT.
 //
-// I am considering writing a new book on Reed-Solomon, binary BCH, and 
+// I am considering writing a new book on Reed-Solomon, binary BCH, and
 // LDPC codes.  If I do, it will cover the techniques of this program
-// and many other practical aspects of error correcting code design.  It will 
-// also include extensions to many of the fundamental concepts from my earlier 
-// book.  I have been prepareing the material off and on for several years.   
+// and many other practical aspects of error correcting code design.  It will
+// also include extensions to many of the fundamental concepts from my earlier
+// book.  I have been prepareing the material off and on for several years.
 //
 // -----Neal Glover  boglover[at]msn.com  303-466-5434-----
 //
@@ -147,9 +147,10 @@ struct statAndFCnt { // Status and failing pass number
 #define ZERO			(0)			// Zero
 // ################ DEFINITIONS AFFECTING STORAGE SPACE ################
 // ***** IF YOU CHANGE MAXMPARM, YOU MUST CHANGE MAXFFSIZE AS WELL
-#define MAXMPARM		(16)	// Max mParm - m of GF(2^m), Pgm not "designed" for m>16 
-#define MINMPARM        (6)		// Min mParm, Pgm not "designed" to handle m<6
-#define MAXCORR			(64)	// Max tParm, Pgm not "tested" for Max tParm> 64 
+#define MAXMPARM		(16)	// Max mParm - m of GF(2^m), Pgm not "designed" for m>16
+// #define MINMPARM     (6)		// Min mParm, Pgm not "designed" to handle m<6
+#define MINMPARM     (5)		// Min mParm, Pgm not "designed" to handle m<6
+#define MAXCORR			(64)	// Max tParm, Pgm not "tested" for Max tParm> 64
 //  Pgm not tested for MAXFFSIZE>65536
 // ***** MAXFFSIZE MUST BE SET TO 2^MAXMPARM *****
 #define MAXFFSIZE		(65536)	// Max finite field size - Sets storage requirement only
@@ -161,8 +162,8 @@ struct statAndFCnt { // Status and failing pass number
 #define BYTESTATES		(256)   // Number of states of a byte
 // Init error definitions
 //#define QUADBUILDERR  (2)		// Err building the quad table for special solutions
-// Definition of error flag bits (uncorrectable errors)	
-#define DIVZRODIV	(0x0001)		// (1) Divide by 0 error in ffDiv	
+// Definition of error flag bits (uncorrectable errors)
+#define DIVZRODIV	(0x0001)		// (1) Divide by 0 error in ffDiv
 #define DIVZROINV	(0x0002)		// (2) Divide by 0 error in ffInv
 #define ROOTSNEQLN	(0x0004)		// (4) Root count error in chienSearch
 #define CGPFATAL    (0x0008)		// (8) Fatal error in cgp generation
@@ -171,9 +172,9 @@ struct statAndFCnt { // Status and failing pass number
 #define CORROUTSIDE (0x0040)		// (64) Attempt to correct beyond last Codeword bit
 #define BERMASERR	(0x0080)		// (128) ELP would exceed space allotted
 #define TBLNOTINIT  (0x0100)		// (256) Tbls not init error in bchDecode
-#define	E1QUADRATIC	(0x0200)		// (512) Divide by 0 err in ffQuadratic		
+#define	E1QUADRATIC	(0x0200)		// (512) Divide by 0 err in ffQuadratic
 #define E2QUADRATIC	(0x0400)		// (1024) Zero root of y^2+y+c in ffQuadratic
-#define	E1CUBIC		(0x0800)		// (2048) Divide by 0 error in ffCubic			
+#define	E1CUBIC		(0x0800)		// (2048) Divide by 0 error in ffCubic
 #define E2CUBIC		(0x1000)		// (4096) Zero root of y^2+y+c in ffCubic
 #define E1QUARTIC	(0x2000)		// (8192) Sigma1=0 and Sigma3=0 in ffQuartic
 #define E1CROOT	    (0x4000)		// (16384) "Not a cube" in ffCubeRoot
@@ -186,10 +187,10 @@ struct statAndFCnt { // Status and failing pass number
 #define LOGALPHAIGTHMPARM (0x200000)// BTA - LOGALPHAi GTH mParm
 #define LOGALOGBUILDERR   (0x400000)// Err building the log or alog table
 //
-// Definition of the status bits returned by eccDecode	
+// Definition of the status bits returned by eccDecode
 #define CORR		(1)				// Correctable status
 #define UNCORR		(2)				// Uncorrectable status
-#define ERRFREE		(0)				// Error free status			
+#define ERRFREE		(0)				// Error free status
 //
 // Definition of bchEval status bits - These added to status returned by bchDecode
 #define UNCORRNOTEXPD (0x0010)		// (16) if dcdStatus==UNCORR && statusExpd<UNCORR
@@ -204,9 +205,9 @@ static int gblAlogTbl[2*MAXFFSIZE],gblLogTbl[MAXFFSIZE];
 static int gblAppliedErrLocs[MAXERRSTOSIM],gblAppliedErrVals[MAXERRSTOSIM];
 static int gblCodeword[MAXCODEWDBYTES], gblCodewordSav[MAXCODEWDBYTES];
 static int gblRemainBytes[(MAXCORR*MAXMPARM)/8+1],gblLoc[MAXCORR];
-static int gblKParm,gblMParm, gblNParm, gblMParmOdd,  gblTParm; 
-static int gblNumCodewordBytes,gblNumErrsApplied; 
-static int gblNumRedunBits, gblNumRedunBytes, gblNumDataBytes; 
+static int gblKParm,gblMParm, gblNParm, gblMParmOdd,  gblTParm;
+static int gblNumCodewordBytes,gblNumErrsApplied;
+static int gblNumRedunBits, gblNumRedunBytes, gblNumDataBytes;
 static int gblNumDataBits,gblNumRedunWords;
 static int gblCgpBitArray[MAXCORR*MAXMPARM+1], gblCgpDegree;
 static int gblMisCorrCnt,gblRawLoc[MAXERRSTOSIM];
@@ -242,7 +243,7 @@ static unsigned int getRandom()
 	//	Function to get a random number for the simulator.  I use 2
 	//  random number generators and add the 2 random numbers.  To
 	//  generate one of the random numbers I use a degree 32 primitive
-	//  GF(2) polynomial in order to make the length of the random 
+	//  GF(2) polynomial in order to make the length of the random
 	//  number sequence very long before repeating starts.  The second
 	//  random number generator is the "C" function rand().
 	//
@@ -258,10 +259,11 @@ static unsigned int getRandom()
 	else
 		gblRandomNum <<= 1;
 	// Below - divide by 2 because the add might affect number distribution in the
-	// low digit.  This strategy probably ok for the small random numbers we want 
-	// in this program.  Non repeating is important and it should be achieved 
+	// low digit.  This strategy probably ok for the small random numbers we want
+	// in this program.  Non repeating is important and it should be achieved
 	// with this strategy.
-	return (((gblRandomNum+(unsigned int)rand()) & 0x7fffffffU)/2);
+	//return (((gblRandomNum+(unsigned int)rand()) & 0x7fffffffU)/2);
+	return (0x11111111);
 }
 static void pickFieldGenPoly()
 {
@@ -276,11 +278,19 @@ static void pickFieldGenPoly()
 	// Robert Morelos-Zaragoza bch decoder on the "ECC Page" web site.
 	//****************************************************************
 	// Source for field generator polynomials - Peterson and Weldon book.
+#if 0
 	int fieldPolyTbl[15] = {
-		67, 137, 285, 529, 1033, 2053, 4179, 8219, 17475, 
+		67, 137, 285, 529, 1033, 2053, 4179, 8219, 17475,
 		32771, 69643, 131081, 262273, 524327, 1048585
 	};
 	gblFFPoly = fieldPolyTbl[gblMParm-6]; // m = 6 table entry is at location 0
+#else
+	int fieldPolyTbl[] = {
+		37, 67, 137, 285, 529, 1033, 2053, 4179, 8219, 17475,
+		32771, 69643, 131081, 262273, 524327, 1048585
+	};
+	gblFFPoly = fieldPolyTbl[gblMParm-5]; // m = 5 table entry is at location 0
+#endif
 }
 
 static void buildLogAlogTbls()
@@ -296,7 +306,7 @@ static void buildLogAlogTbls()
 	unsigned int shiftReg,fdbkCon;
 	int ffSizeDivTwo;
 
-	// Construct the finite field log and alog tables			
+	// Construct the finite field log and alog tables
 	shiftReg=1;
 	fdbkCon=(unsigned int)(gblFFPoly-gblFFSize);
 	ffSizeDivTwo=gblFFSize/2;
@@ -315,22 +325,22 @@ static void buildLogAlogTbls()
 	}
 	// 9-1-10 Changed value for log of zero
 	gblLogTbl[0]=gblLogZVal; // This is the value for log of zero
-	// 9/2010 Changed next line for double size alog table 
+	// 9/2010 Changed next line for double size alog table
 	gblAlogTbl[gblLogZVal] = 0;
 }
 static int chkLogAlogTbls()
 //****************************************************************
 //	Function: chkLogAlogTbls
 //
-//	This function tests the finite field log and alog tables to 
-//  determine if they are correct.  If they are not, an error 
+//	This function tests the finite field log and alog tables to
+//  determine if they are correct.  If they are not, an error
 //  code is returned.
 //****************************************************************
 {
 	int kx;
 
 	// Check log and alog tables
-	for (kx=0;kx < gblNParm;kx++){	
+	for (kx=0;kx < gblNParm;kx++){
 		if (kx != gblLogTbl[gblAlogTbl[kx]]){
 			return(LOGALOGBUILDERR); // Flag error
 		}
@@ -435,32 +445,32 @@ static void genQuadCompTbl()
 	//	Function: genQuadCompTbl
 	//
 	//	Function to find a list of components of y to be used
-	//	in finding solutions to Y^2+y+c using a table of 
-	//  linear components. This function is called at initialization 
+	//	in finding solutions to Y^2+y+c using a table of
+	//  linear components. This function is called at initialization
 	//  time only.  This solution uses a small table with gblMParm
 	//  entries.  A large table would be faster but would
-	//  require 2^gblMParm entries.  It is possible to have an inbetween 
+	//  require 2^gblMParm entries.  It is possible to have an inbetween
 	//  solution that uses two moderate size tables and is faster than
 	//  this small table solution but not as fast as the one large table
 	//  solution.  The reference for this solution is Dr. Berlekamp's 1968
 	//  "Algebraic Coding Theory" book pages 243 and 244.
-	//  The first loop of this function will put in the search table 
-	//  each "c" of y^2+y = c that has a single "1" bit or the xor of 
-	//  such a pattern with the value of a fixed element with 
-	//  trace = "1". The second loop searches for each element in the 
-	//  table within a set of solutions for 
-	//  y^2+y=c and if it finds one then it stores the associated 
+	//  The first loop of this function will put in the search table
+	//  each "c" of y^2+y = c that has a single "1" bit or the xor of
+	//  such a pattern with the value of a fixed element with
+	//  trace = "1". The second loop searches for each element in the
+	//  table within a set of solutions for
+	//  y^2+y=c and if it finds one then it stores the associated
 	//  value of y in the gblQuadCompTbl.
 	//****************************************************************
 	int c,y,kx,shifter,searchTbl[MAXMPARM],firstTraceOne;
 
 	firstTraceOne=0;
-	// This loop will put in the search table each "c" of y^2+y = c that has a  
+	// This loop will put in the search table each "c" of y^2+y = c that has a
 	// single "1" bit or the xor of such a pattern with a fixed pattern of an
 	// element with trace = "1"
 	shifter=1;
 	for (kx=0;kx<gblMParm;kx++){
-		searchTbl[kx]=0; 
+		searchTbl[kx]=0;
 		if ((gblTraceTestVal&shifter)>0){
 			if (firstTraceOne>0){
 				searchTbl[kx]=shifter^firstTraceOne;
@@ -477,7 +487,7 @@ static void genQuadCompTbl()
 	for (kx=0;kx<gblMParm;kx++){
 		gblQuadCompTbl[kx]=0; // Clear table
 	}
-	// This loop will search for each "c" of y^2+y = c that has a single bit 
+	// This loop will search for each "c" of y^2+y = c that has a single bit
 	// or is the xor of such a pattern with a fixed pattern of an
 	// element with trace = "1"
 	for (y=0;y<gblFFSize;y+=2){//Incr of 2 may not work with another basis
@@ -486,7 +496,7 @@ static void genQuadCompTbl()
 			if (c==searchTbl[kx]){
 				gblQuadCompTbl[kx]=y;
 			}
-		}	
+		}
 	}
 }
 
@@ -498,9 +508,9 @@ static int ffQuadFun(int c)
 	// This function is used during decode operations of
 	// error correction.  When a solution is needed for the equation
 	// y^2+y+c=0 the function first ANDs the trace
-	// test value with "c" and then tests parity 
+	// test value with "c" and then tests parity
 	// of the resulting bits.  If parity is odd (trace = 1)
-	// an error is posted and the function exits.  If parity is 
+	// an error is posted and the function exits.  If parity is
 	// even then the function continues on and XORs a set of values to
 	// get y1, one solution of y^2+y=c.  The second solution is the
 	// XOR of the first solution with a single one bit in the low
@@ -553,7 +563,7 @@ static void linearElp(const int sigmaN[],int Loc[])
 	//****************************************************************
 	//	Function:  linearElp
 	//
-	//	Function to find the root of a degree one error locator 
+	//	Function to find the root of a degree one error locator
 	//  polynomial (ELP)
 	//****************************************************************
 	Loc[0]=sigmaN[1];
@@ -569,24 +579,24 @@ static int quadraticElp(const int sigmaN[],int Loc[])
 	//  Flagg patent 4,099,160 and the paper "High Speed Interleaved
 	//  Reed-Solomon Error Detection and Correction System" by
 	//  Shirish Deodhar and E.J. Weldon, Journal of Photo-Optical
-	//  Instrumentation Engineers (SPIE), 1983.  See also the Deodhar 
+	//  Instrumentation Engineers (SPIE), 1983.  See also the Deodhar
 	//  patent 4,567,594 and the Glover-Dudley patents 4,839,896 and
 	//  5,280,488.
 	//****************************************************************
 	int c,y1,y2,errFlg;
 
 	errFlg=0;
-	if (sigmaN[1]==0){ 
+	if (sigmaN[1]==0){
 		errFlg|=E1QUADRATIC;
 	}
 	c=ffDiv(sigmaN[2],ffMult(sigmaN[1],sigmaN[1]),&errFlg);
 	y1=ffQuadFun(c);
-	if (y1==0){ 
+	if (y1==0){
 		errFlg|=E2QUADRATIC;
 	}
-	// In next line, if ever use basis other than poly then "1" may have 
+	// In next line, if ever use basis other than poly then "1" may have
 	// to change to alog[0]
-	y2=y1^1; 
+	y2=y1^1;
 	Loc[0]=ffMult(sigmaN[1],y1);
 	Loc[1]=ffMult(sigmaN[1],y2);
 	return (errFlg);  // Return error flag
@@ -597,18 +607,18 @@ static int cubicElp(int nParm, const int sigmaN[],int Loc[],const int alogTbl[])
 	//****************************************************************
 	//	Function:	cubicElp
 	//
-	//	Function to find the roots of a degree three error locator 
+	//	Function to find the roots of a degree three error locator
 	//  polynomial (ELP).  This code follows the algorithm of page 355
 	//  of the 1991 Glover-Dudley book "Practical Error Correction Design
 	//  for Engineers" REVISED SECOND EDITION.  My original reference for
-	//  that book was the 1978 Flagg patent 4,099,160.  See also 
-	//  the paper "High Speed Interleaved Reed-Solomon Error 
+	//  that book was the 1978 Flagg patent 4,099,160.  See also
+	//  the paper "High Speed Interleaved Reed-Solomon Error
 	//  Detection and Correction System" by Shirish Deodhar
 	//  and E.J. Weldon, Journal of Photo-Optical
-	//  Instrumentation Engineers (SPIE), 1983.  See also the Deodhar 
+	//  Instrumentation Engineers (SPIE), 1983.  See also the Deodhar
 	//  patent 4,567,594 and the Glover-Dudley patents 4,839,896 and
-	//  5,280,488.  See also the paper by Chien, Cunningham, and 
-	//  Oldham titled "Hybrid Methods for Finding Roots of a Polynomial 
+	//  5,280,488.  See also the paper by Chien, Cunningham, and
+	//  Oldham titled "Hybrid Methods for Finding Roots of a Polynomial
 	//  With Application to BCH Decoding" published in Transactions on
 	//  Information Theory", March 1969 pages 329-335.
 	//
@@ -639,7 +649,7 @@ static int cubicElp(int nParm, const int sigmaN[],int Loc[],const int alogTbl[])
 	{
 		// The quad function is equiv to fetching from large table
 		v1=ffQuadFun(c);
-		if (v1==0){ 
+		if (v1==0){
 			errFlg|=E2CUBIC;
 		}
 		u1=ffMult(v1,d);
@@ -660,16 +670,16 @@ static int quarticElp(int nParm,int sigmaN[],int Loc[],const int alogTbl[])
 	//****************************************************************
 	//	Function:	quarticElp
 	//
-	//	Function to find the roots of a degree four error locator 
-	//  polynomial (ELP).  My code follows the quartic algorithm 
+	//	Function to find the roots of a degree four error locator
+	//  polynomial (ELP).  My code follows the quartic algorithm
 	//  of the paper "High Speed Interleaved Reed-Solomon
 	//  Error Detection and Correction System" by
 	//  Shirish Deodhar and E.J. Weldon, Journal of Photo-Optical
 	//  Instrumentation Engineers (SPIE), 1983.  See also the 1978
 	//  Flagg patent 4,099,160, the Deodhar patent 4,567,594,
 	//  and the Glover-Dudley patents 4,839,896 and
-	//  5,280,488.  See also the paper by Chien, Cunningham, and 
-	//  Oldham titled "Hybrid Methods for Finding Roots of a Polynomial 
+	//  5,280,488.  See also the paper by Chien, Cunningham, and
+	//  Oldham titled "Hybrid Methods for Finding Roots of a Polynomial
 	//  With Application to BCH Decoding" published in Transactions on
 	//  Information Theory", March 1969 pages 329-335.
 	//
@@ -690,7 +700,7 @@ static int quarticElp(int nParm,int sigmaN[],int Loc[],const int alogTbl[])
 	for (n=0;n<=Ln;n++){
 		sigbk[n]=sigmaN[n];
 	}
-	//	Test for special case - poly already in correct form	
+	//	Test for special case - poly already in correct form
 	if (sigbk[1]==0){
 		// Note to Neal.  Re-test extensively without the next decision.
 		// Uncorrectable errors caught by this check may be caught by
@@ -716,7 +726,7 @@ static int quarticElp(int nParm,int sigmaN[],int Loc[],const int alogTbl[])
 			ffSquareRoot(ffMult(sigbk[1],sigbk[3]))^sigbk[2]);
 	}
 	// ---------- Step c of the Deodhar-Weldon paper ----------
-	//	Set up a cubic and find its 3 roots.					
+	//	Set up a cubic and find its 3 roots.
 	sigmaN[0]=1;
 	sigmaN[1]=0;
 	sigmaN[2]=b2;
@@ -724,29 +734,29 @@ static int quarticElp(int nParm,int sigmaN[],int Loc[],const int alogTbl[])
 	errFlg|=cubicElp(nParm,sigmaN,Loc,alogTbl);
 	qq=Loc[1];
 	// ---------- Step d of the Deodhar-Weldon paper ----------
-	//	Set up a quadratic and find its two roots				
+	//	Set up a quadratic and find its two roots
 	sigmaN[0]=1;
 	sigmaN[1]=ffDiv(b3,qq,&errFlg);
 	sigmaN[2]=b4;
 	errFlg|=quadraticElp(sigmaN,Loc);
 	ss=Loc[0];
 	tt=Loc[1];
-	//	First 2 roots of quartic		
+	//	First 2 roots of quartic
 	sigmaN[0]=1;
 	sigmaN[1]=qq;
 	sigmaN[2]=ss;
 	errFlg|=quadraticElp(sigmaN,Loc);
 	Loc[2]=Loc[0];
 	Loc[3]=Loc[1];
-	//	Last 2 roots of quartic		
+	//	Last 2 roots of quartic
 	sigmaN[0]=1;
 	sigmaN[1]=qq;
 	sigmaN[2]=tt;
 	errFlg|=quadraticElp(sigmaN,Loc);
-	//	Skip inverse substitution if special case				
+	//	Skip inverse substitution if special case
 	if (sigbk[1]!=0){
 		// ---------- Step e of the Deodhar-Weldon paper ----------
-		//	Do inverse substitution								
+		//	Do inverse substitution
 		tmp=ffSquareRoot(ffDiv(sigbk[3],sigbk[1],&errFlg));
 		for (n=0;n<4;n++){
 			Loc[n]=ffInv(Loc[n],&errFlg)^tmp;
@@ -768,27 +778,27 @@ static int genCodeGenPoly()
 	//  This function was motivated by a similar function in the
 	//  Robert Morelos-Zaragoza bch decoder on the "ECC Page" web site.
 	//
-	//  Generally, finding the code generator polynomial requires two 
-	//  steps  1) compute minimum polynomials and 2) find the LCM of 
+	//  Generally, finding the code generator polynomial requires two
+	//  steps  1) compute minimum polynomials and 2) find the LCM of
 	//  the minimum polynomials to determine the code generator polynomial.
-	//  But it is also possible to combine these steps.  Finding a 
+	//  But it is also possible to combine these steps.  Finding a
 	//  minimum polynomial is accomplished by finding the product of a
 	//  set of roots and finding the code generator polynomial is
 	//  accomplished by finding the product of a set of minimum
 	//  polynomials.  So the two steps can be combined to find the code
-	//  generator polynomial in one step by finding the product of a 
+	//  generator polynomial in one step by finding the product of a
 	//  larger set of roots.  This program uses this combined approach.
 	//
 	//  It might be possible though to pull a little time out of this function
-	//  by using the more general two step approach.  By careful coding it may 
-	//  be possible to take advantage of the fact that once the minimum 
-	//  polynomials have been computed, computing the code generator polynomial 
+	//  by using the more general two step approach.  By careful coding it may
+	//  be possible to take advantage of the fact that once the minimum
+	//  polynomials have been computed, computing the code generator polynomial
 	//  from them involves only GF(2) finite field operations.
 	//
 	//  This function is used only during development, so it would not be part
 	//  of an implementation in a product employing one fixed code.
 	//
-	//  NOTE: The code generator polynomial is stored in a array, 
+	//  NOTE: The code generator polynomial is stored in a array,
 	//  one bit per int and Low order in address 0.
 	//
 	//  Note to Neal: On next update check value of root before using it
@@ -801,7 +811,7 @@ static int genCodeGenPoly()
 
 	for (kx=0;kx<gblFFSize;kx++){
 		flg[kx]=0;// Index to flg can have values root,2*root,4*root,8*root...
-	}	
+	}
 	for (kx=0;kx<=gblMParm*gblTParm;kx++){
 		gblCgpBitArray[kx]=0;// Initialize
 		tmp[kx]=0;			 // Initialize
@@ -811,7 +821,7 @@ static int genCodeGenPoly()
 	errFlg=0;
 	for (rootBase=1;rootBase<=2*gblTParm-1;rootBase += 2){ // alpha 1,3,5,7 etc.
 		if (flg[rootBase] == 0){ // If this root not already processed
-			root = rootBase; 
+			root = rootBase;
 			for(;;){ // Infinite loop - Exit is by "break"
 				// In loop - root will take values like 1,2,4,8... 3,6,12,24...etc
 				if (gblCgpDegree+1>gblMParm*gblTParm){
@@ -857,8 +867,8 @@ static void cvtCgpBitToCgpWord()
 	//	Function: cvtCgpBitToCgpWord
 	//
 	//	Function to convert, the code generator polynomial (cgp) stored one
-	//  bit per int and organized low order to address 0, into a set of 
-	//  words that contain the shift register feedback pattern for the code 
+	//  bit per int and organized low order to address 0, into a set of
+	//  words that contain the shift register feedback pattern for the code
 	//  generator polynomial.  The feedback words are stored high order to
 	//  address 0.  SO THE ORGANIZATION CHANGES BETWEEN THE INPUT AND OUTPUT
 	//  OF THIS FUNCTION.
@@ -866,7 +876,7 @@ static void cvtCgpBitToCgpWord()
 	int nnn, kkk, wordAddr;
 	unsigned int bitMask;
 
-	// Convert gblCgpBitArray to cgpWordArray 
+	// Convert gblCgpBitArray to cgpWordArray
 	// That is, 1 bit per word to 32 bits per word
 	for (nnn=0; nnn < gblNumRedunWords;nnn++){
 		gblCgpFdbkWords[nnn] = 0; // Clear fdbk array
@@ -894,7 +904,7 @@ static void genEncodeTbls()
 	//  Function to generate encode tables.  The encode tables allow
 	//  8 bits of data to be processed at a time.  A Left shifting shift
 	//  reg is implemented in multiple 32-bit words.  A multiple word
-	//  shift register value is stored in the table for each possible 
+	//  shift register value is stored in the table for each possible
 	//  value of a byte.  A byte value is placed in the left most
 	//  (high order position of lowest address word).  Then the shift
 	//  register is shifted 8 times with feedback.  Then the multiple
@@ -941,7 +951,7 @@ static void genEncodeTbls()
 static void clearWriteCW()
 {
 	//****************************************************************
-	//	Function: clearWriteCW 
+	//	Function: clearWriteCW
 	//
 	//	Function to clear write data.
 	//****************************************************************
@@ -956,7 +966,7 @@ static void clearWriteCW()
 static void genWriteData()
 {
 	//****************************************************************
-	//	Function: genWriteData 
+	//	Function: genWriteData
 	//
 	//	Function to generate random data byte values for encoding.  No
 	//  Matter what size of finite field we are using, the encoder
@@ -987,10 +997,10 @@ static void bchEncode(const unsigned int encodeTbl[BYTESTATES][MAXREDUNWDS],int 
 	//  The parallel approach shifts a software shift register implementing the
 	//  code generator polynomial once per codeword byte even though the binary
 	//  BCH code generator polynomial is over GF(2).  The shift occurs once per
-	//  byte regardless of the size of the finite field.  The value of the 
+	//  byte regardless of the size of the finite field.  The value of the
 	//  codeword byte being processed addresses a large table to get the next
 	//  value of the software shift register.  See page 243 (k-bit serial techniques)
-	//  of "Practical Error Correction Design for Engineers" (revised second 
+	//  of "Practical Error Correction Design for Engineers" (revised second
 	//  edition 1991) by Neal Glover and Trent Dudley.  Page 347 of this book
 	//  describes tables for an early implementation of k-bit serial for
 	//  a binary code (a computer generated code).  The k-bit serial
@@ -1016,7 +1026,7 @@ static void bchEncode(const unsigned int encodeTbl[BYTESTATES][MAXREDUNWDS],int 
 			// WILL HAVE TO PROCESS FROM HIGH ADDRESS BACK TOWARDS ZERO
 			fdbkSav = fdbk;
 			// 32 bits per int - but process 8 bits at a time (8 bits unrelated to "m")
-			fdbk = (SR[jx] >> 24) & 0x000000ff; 
+			fdbk = (SR[jx] >> 24) & 0x000000ff;
 			SR[jx] = (SR[jx] << 8) ^ fdbkSav;  // 8 # bits in parallel - unrelated to "m"
 		}
 		fdbk ^= (unsigned int)codeword[writeCWAddr];
@@ -1111,12 +1121,12 @@ static int computeRemainder(const int codeword[],int numRedunWords,int numRedunB
 	//
 	//  This function computes a remainder.  This remainder is the remainder
 	//  from dividing the received codeword by the full code generator polynomial
-	//  (not by factors of it).  This is the key to speeding up syndrome computation.  
-	//  This remainder is computed using a parallel approach similar to that used 
-	//  in encoding.  Once we have a full remainder we can compute syndromes from it.  
+	//  (not by factors of it).  This is the key to speeding up syndrome computation.
+	//  This remainder is computed using a parallel approach similar to that used
+	//  in encoding.  Once we have a full remainder we can compute syndromes from it.
 	//  This is faster than computing syndromes directly from the codeword because
 	//  the remainder is much shorter than the codeword.
-	//  
+	//
 	//  This also gives us a fast way to determine if the syndromes would all be zero.
 	//  If the remainder is all zeros then there is no need to compute syndromes from
 	//  it as they would all be zeros also.  If the remainder is zero then the
@@ -1126,10 +1136,10 @@ static int computeRemainder(const int codeword[],int numRedunWords,int numRedunB
 	//  The parallel approach shifts a software shift register implementing the
 	//  code generator polynomial once per codeword byte even though the binary
 	//  BCH code generator polynomial is over GF(2).  The shift occurs once per
-	//  byte regardless of the size of the finite field.  The value of the 
+	//  byte regardless of the size of the finite field.  The value of the
 	//  codeword byte being processed addresses a large table to get the next
 	//  value of the software shift register.  See page 243 (k-bit serial techniques)
-	//  of "Practical Error Correction Design for Engineers" (revised second 
+	//  of "Practical Error Correction Design for Engineers" (revised second
 	//  edition 1991) by Neal Glover and Trent Dudley.  Page 347 of this book
 	//  describes tables for an early implementation of k-bit serial for
 	//  a binary code (a computer generated code).  The k-bit serial
@@ -1165,7 +1175,7 @@ static int computeRemainder(const int codeword[],int numRedunWords,int numRedunB
 	// SHIFTS WITHOUT FEEDBACK
 	// Line below - This flag will be set later if the remainder is non zero.
 	// Non-zero means either corr or uncorr err.  We will know which after decoding.
-	remainderDetdErr=0; 
+	remainderDetdErr=0;
 	// index to codeword buffer
 	for (readCWAddr = numDataBytes; readCWAddr < numDataBytes+numRedunBytes; readCWAddr++) {
 		fdbk = 0;
@@ -1175,7 +1185,7 @@ static int computeRemainder(const int codeword[],int numRedunWords,int numRedunB
 			SR[nnn] = (SR[nnn] << 8) ^ fdbkSav;  // 8 # bits in parallel - unrelated to "m"
 		}
 		fdbk ^= (unsigned int)codeword[readCWAddr];;
-		remainBytes[readCWAddr-numDataBytes]=(int)fdbk; 
+		remainBytes[readCWAddr-numDataBytes]=(int)fdbk;
 		if (fdbk!=0){
 			remainderDetdErr = 1;
 		}
@@ -1192,7 +1202,7 @@ static void computeSyndromes(int syndromes[],int numRedunBytes,const int remainB
 	//  9-10-10 Made few changes for speed
 	//
 	//  Function to compute syndromes.  Syndromes are computed from a
-	//  remainder not from the codeword.  See the comments 
+	//  remainder not from the codeword.  See the comments
 	//  for the ComputeRemainder function.
 	//
 	//  Note that even syndromes are computed from odd syndromes.
@@ -1218,22 +1228,22 @@ static void computeSyndromes(int syndromes[],int numRedunBytes,const int remainB
 	for (kkk=0;kkk<numSyndromes;kkk++){
 		syndromes[kkk] = 0;
 	}
-	for (iii=0;iii < numRedunBytes;iii++){ 
+	for (iii=0;iii < numRedunBytes;iii++){
 		mask=0x01;
 		for (jjj=0;jjj<8;jjj++){
-			data = remainBytes[iii] & mask; 
+			data = remainBytes[iii] & mask;
 			if (data>0){
-				// 9-10-10 Changed for speed 
+				// 9-10-10 Changed for speed
 				accumVal=(((numRedunBytes-1)-iii)*8+jjj); // Initialize
 				bumpVal=2*accumVal; // Initialize
-				// Note increment by 2 
-				for (kkk=0;kkk<numSyndromes;kkk+=2){ 
+				// Note increment by 2
+				for (kkk=0;kkk<numSyndromes;kkk+=2){
 					//  "+1" is for syndrome offset
 					//	CAN UNROLL THIS LOOP FOR A LITTLE MORE SPEED
 					//  A SWITCH STATEMENT WILL BE REQUIRED.
 					//  CAN GET RID OF MOD (FOR SPEED) BY CARRYING A SUM THAT STARTS
 					//  OUT AS THE MAXIMUM VALUE OF ((kkk+1)*preComputeVal) AND
-					//  SUBTRACTING PRECOMPUTEVAL EACH TIME AND IF VALUE GOES 
+					//  SUBTRACTING PRECOMPUTEVAL EACH TIME AND IF VALUE GOES
 					//  NEGATIVE ADD IN NPARM.  THE MAX VALUE ABOVE WILL VARY
 					//  BASED ON NUMBER OF REDUN BYTES FOR SELECTED PARMS
 					//  9-10-10 Changed next few lines for speed
@@ -1250,7 +1260,7 @@ static void computeSyndromes(int syndromes[],int numRedunBytes,const int remainB
 			mask *=2;
 		}
 	}
-	// Compute even Syndromes from the odd Syndromes 
+	// Compute even Syndromes from the odd Syndromes
 	for (kkk=0;kkk<numSyndromes;kkk+=2){
 		x=syndromes[kkk];
 		evenSNum=(2*(kkk+1));
@@ -1277,17 +1287,17 @@ static int berMas(int tParm,int sigmaN[],const int syndromes[],int *pErrFlg,
 //	This function computes the coefficient's of the ELP using the Berlekamp-
 //	Massey algorithm. The reference for this algorithm is
 //	"Shift-Register Synthesis and BCH Decoding", IEEE Transactions
-//	on Information Theory, IT-15, 122-127, 1969.  This paper can also be 
+//	on Information Theory, IT-15, 122-127, 1969.  This paper can also be
 //  found in Blake's 1973 book, "Algebraic Coding Theory"
 //  (a collection of papers).  When I wrote the 1999 version of this
 //  function, I evaluated several variations of the Berlekamp-Massey
 //  algorithm. The variations vary mostly in the initialization of "nn"
 //  (0 or 1) and in the algebra used for the decisions.
 //
-//	I wrote this code originally in 1999 for a Reed-Solomon code.  
-//  I added the error evaluator polynomial at that time.  My reference 
+//	I wrote this code originally in 1999 for a Reed-Solomon code.
+//  I added the error evaluator polynomial at that time.  My reference
 //  for adding the error evaluator polynomial was the thesis
-//  by Doug Whiting.  I removed the error evaluator polynomial 10-3-08 
+//  by Doug Whiting.  I removed the error evaluator polynomial 10-3-08
 //  for a binary BCH, since we do not compute error values for a binary
 //  BCH code.  Variable names used here are related to the variable names
 //  used in the original Massey article as shown below.
@@ -1303,11 +1313,11 @@ static int berMas(int tParm,int sigmaN[],const int syndromes[],int *pErrFlg,
 //   dn          d
 //   Ln          L
 //
-//  For implementations where the time spent in this function is a 
+//  For implementations where the time spent in this function is a
 //  dominating factor in performance, a technique due to C.L. Chen can
-//  be used for a speed up. If you are interested see "High-Speed 
+//  be used for a speed up. If you are interested see "High-Speed
 //  Decoding of BCH Codes" by C.L. Chen - IEEE Info Theory VOL. IT-27,
-//  NO. 2, March 1981.  Before implementing this technique you need 
+//  NO. 2, March 1981.  Before implementing this technique you need
 //  to understand its impact on your miscorrection rate.
 //***************************************************************
 {
@@ -1324,7 +1334,7 @@ static int berMas(int tParm,int sigmaN[],const int syndromes[],int *pErrFlg,
 	nminusk=1;dk=1;lk=0;Ln=0;
 	// Next cmd line - 2*tParm is number of syndromes
 	// Next cmd line - *****incr was changed from 1 (RS) to 2 (bin BCH)*****
-	for (nn=0;nn<2*tParm;nn+=2){  
+	for (nn=0;nn<2*tParm;nn+=2){
 		dn=0;
 		for (j=0;j<=Ln;j++){
 			dn^=ffMult(sigmaN[j],syndromes[nn-j]);
@@ -1402,41 +1412,41 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 	//
 	//  This is an enhanced version of the Chien search algorithm.  As
 	//  coded here the function finds roots until the degree (Ln) of
-	//  the Error Locator Polynomial (ELP) has been reduced to four, 
-	//  if "m" is even, or to two, if "m" is odd.  The quartic function 
+	//  the Error Locator Polynomial (ELP) has been reduced to four,
+	//  if "m" is even, or to two, if "m" is odd.  The quartic function
 	//  finds the last four roots if "m" is even or the quadratic function
-	//  finds the last two roots if "m" is odd.  This function is not 
+	//  finds the last two roots if "m" is odd.  This function is not
 	//  called if the degree of the original ELP is 4 or less("m" even) or 2
-	//  or less ("m" odd).  To optimize speed two different techniques are 
+	//  or less ("m" odd).  To optimize speed two different techniques are
 	//  used to advance the ELP for its next evaluation.
 	//
 	//  For this code a fast technique is used when there are no zero
 	//  coefficients in the ELP.  A slower technique is used when there are
 	//  zero coefficients in the ELP. The probability that there are zero
-	//  coefficients in the ELP is relatively low.  Also for speed the ELP 
-	//  is divided down each time a root is found.  Also for speed the inner 
-	//  most loop of the faster technique is unrolled.  Again for speed, mod 
+	//  coefficients in the ELP is relatively low.  Also for speed the ELP
+	//  is divided down each time a root is found.  Also for speed the inner
+	//  most loop of the faster technique is unrolled.  Again for speed, mod
 	//  operations are replaced with equivalent but faster operations.
-	//  My original knowledge of unrolling loops came from the Earl 
+	//  My original knowledge of unrolling loops came from the Earl
 	//  Cohen Ph.D. thesis (Berkeley).  See also the Glover-Dudley patent
 	//  4,839,896.
 	//
 	//  The fastest Chien search technique that I am aware of is to
 	//  keep the coefficient values in alog form and to use a table
 	//  in memory to implement each constant multiplier of the Chien
-	//  search.  With this technique combined with loop unrolling 
+	//  search.  With this technique combined with loop unrolling
 	//  I think you would see a speed up by about a factor of two
 	//  for root finding.  The memory space requirement will be very
-	//  large for large finite fields.  The large memory requirement 
+	//  large for large finite fields.  The large memory requirement
 	//  may not be a problem for decoders that run on a PC.
 	//
 	//  There are software root finding techniques that beat the
-	//  speed of even very well written Chien search software. 
+	//  speed of even very well written Chien search software.
 	//  Some of these techniques are for particular cases such
 	//  as for quintic and sextic polynomials.  But others are for
 	//  the general case.  Contact the author for more information.
 	//
-	//  The original reference for the most basic Chien search is 
+	//  The original reference for the most basic Chien search is
 	//  "Cyclic Decoding Procedures for Bose-Chaudhuri-
 	//  Hocquenghem Codes", IEEE Transactions on Information Theory,
 	//  vol. IT-10, pp 357-363, Oct. 1964.
@@ -1445,7 +1455,7 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 	int nn,jj,kx,coeffContainsAZero;
 	int accum,reg,tmp,errFlg,Ln;
 	//
-	errFlg=0; 
+	errFlg=0;
 	Ln=LnOrig;
 	// Check for a zero coeff before converting to log domain and if find one, set flag
 	coeffContainsAZero = 0;
@@ -1455,14 +1465,14 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 			break;
 		}
 	}
-	// Convert error locator poly to log domain for Chien Search 
+	// Convert error locator poly to log domain for Chien Search
 	for (nn=1;nn<=Ln;nn++){
 		sigmaN[nn] = logTbl[sigmaN[nn]];
 	}
-	for (nn=0;nn<numCodewordBytes*8;nn++){ 
+	for (nn=0;nn<numCodewordBytes*8;nn++){
 		accum = 0;
 		// Do simple Chien Search if zero coeffs or if Ln>8.  YOU CANNOT
-		// CHANGE THE # 8 IN "Ln>8" WITHOUT ADDING MORE ENTRIES FOR THE 
+		// CHANGE THE # 8 IN "Ln>8" WITHOUT ADDING MORE ENTRIES FOR THE
 		// UNROLLED LOOP
 		if (coeffContainsAZero == 1 || Ln>8){
 			for (jj=1;jj<=Ln;jj++){ // One step of Simple Chien Search in this loop
@@ -1480,49 +1490,49 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 			switch (Ln)
 			{
 			case 8:accum ^= alogTbl[sigmaN[8]];  // accum is XOR sum of all alogs
-				sigmaN[8] -= 8; 
+				sigmaN[8] -= 8;
 				if (sigmaN[8] < 0){
 					sigmaN[8] += nParm;
 				}
 				//lint -fallthrough
 			case 7:accum ^= alogTbl[sigmaN[7]];  // accum is XOR sum of all alogs
-				sigmaN[7] -= 7; 
+				sigmaN[7] -= 7;
 				if (sigmaN[7] < 0){
 					sigmaN[7] += nParm;
 				}
 				//lint -fallthrough
 			case 6:accum ^= alogTbl[sigmaN[6]];  // accum is XOR sum of all alogs
-				sigmaN[6] -= 6; 
+				sigmaN[6] -= 6;
 				if (sigmaN[6] < 0){
 					sigmaN[6] += nParm;
 				}
 				//lint -fallthrough
 			case 5:accum ^= alogTbl[sigmaN[5]];  // accum is XOR sum of all alogs
-				sigmaN[5] -= 5; 
+				sigmaN[5] -= 5;
 				if (sigmaN[5] < 0){
 					sigmaN[5] += nParm;
 				}
 				//lint -fallthrough
 			case 4:accum ^= alogTbl[sigmaN[4]];  // accum is XOR sum of all alogs
-				sigmaN[4] -= 4; 
+				sigmaN[4] -= 4;
 				if (sigmaN[4] < 0){
 					sigmaN[4] += nParm;
 				}
 				//lint -fallthrough
 			case 3:accum ^= alogTbl[sigmaN[3]];  // accum is XOR sum of all alogs
-				sigmaN[3] -= 3; 
+				sigmaN[3] -= 3;
 				if (sigmaN[3] < 0){
 					sigmaN[3] += nParm;
 				}
 				//lint -fallthrough
 			case 2:accum ^= alogTbl[sigmaN[2]];  // accum is XOR sum of all alogs
-				sigmaN[2] -= 2; 
+				sigmaN[2] -= 2;
 				if (sigmaN[2] < 0){
 					sigmaN[2] += nParm;
 				}
 				//lint -fallthrough
 			case 1:accum ^= alogTbl[sigmaN[1]];  // accum is XOR sum of all alogs
-				sigmaN[1] -= 1; 
+				sigmaN[1] -= 1;
 				if (sigmaN[1] < 0){
 					sigmaN[1] += nParm;
 				}
@@ -1530,7 +1540,7 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 			default: break;
 			}
 		}
-		if (accum==1){	
+		if (accum==1){
 			Loc[Ln-1]=alogTbl[nn];
 			// Convert back to alog domain so we can divide down
 			for (kx=1;kx<=Ln;kx++){
@@ -1556,7 +1566,7 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 			if ((Ln==4 && mParmOdd==0) || (Ln==2 && mParmOdd==1))  // 4 and 2
 			{
 				// We are still in alog domain so,
-				// position the ELP back to its starting point for special cases 
+				// position the ELP back to its starting point for special cases
 				for (kx=1;kx<=Ln;kx++){
 					sigmaN[kx]=ffMult(sigmaN[kx],alogTbl[((nn+1)*kx)%nParm]);
 				}
@@ -1569,8 +1579,8 @@ static int chienSearch(int sigmaN[],int Loc[],const int alogTbl[], const int log
 		}
 	}
 	// If degree of ELP has not been reduced properly
-	if ((Ln!=4 && mParmOdd ==0) || (Ln!=2 && mParmOdd ==1)){// 4 and 2  
-		errFlg|=ROOTSNEQLN; 
+	if ((Ln!=4 && mParmOdd ==0) || (Ln!=2 && mParmOdd ==1)){// 4 and 2
+		errFlg|=ROOTSNEQLN;
 	}
 	return (errFlg);
 }
@@ -1585,10 +1595,10 @@ static int rootFindChien(int sigmaN[],int Loc[],const int alogTbl[], const int l
 	//  NOTE: There are seperate rootFind functions for Chien and BTA.
 	//
 	//  This function is the highest level root finding function.  It calls
-	//  lower level root finding functions.  There are special functions 
-	//  called for error locator polynomial (ELP) degrees 1 to 4 ("m" even) 
-	//  or 1 to 2 ("m" odd).  If the degree of the ELP is greater than 
-	//  4 ("m" even) or 2 ("m" odd) the Chien search function is called.  
+	//  lower level root finding functions.  There are special functions
+	//  called for error locator polynomial (ELP) degrees 1 to 4 ("m" even)
+	//  or 1 to 2 ("m" odd).  If the degree of the ELP is greater than
+	//  4 ("m" even) or 2 ("m" odd) the Chien search function is called.
 	//****************************************************************
 	int errFlg;
 
@@ -1605,7 +1615,7 @@ static int rootFindChien(int sigmaN[],int Loc[],const int alogTbl[], const int l
 		errFlg=cubicElp(nParm,sigmaN,Loc,alogTbl);
 	}
 	else if (LnOrig==4 && mParmOdd==0){
-		errFlg=quarticElp(nParm,sigmaN,Loc,alogTbl); 
+		errFlg=quarticElp(nParm,sigmaN,Loc,alogTbl);
 	}
 	else
 	{
@@ -1613,11 +1623,11 @@ static int rootFindChien(int sigmaN[],int Loc[],const int alogTbl[], const int l
 			LnOrig,numCodewordBytes,nParm,mParmOdd);
 		if (errFlg==0 && mParmOdd==0){
 			// m even - Chien will have divided down to quartic
-			errFlg|=quarticElp(nParm,sigmaN,Loc,alogTbl); 
+			errFlg|=quarticElp(nParm,sigmaN,Loc,alogTbl);
 		}
 		else if (errFlg==0 && mParmOdd==1){
 			// m odd - Chien will have divided down to quadratic
-			errFlg|=quadraticElp(sigmaN,Loc); 
+			errFlg|=quadraticElp(sigmaN,Loc);
 		}
 	}
 	return (errFlg);
@@ -1787,16 +1797,16 @@ static int ffPFastGcd(const int mIn[],int mDegIn,const int nIn[],
 	//****************************************************************
 	//	Function: ffPFastGcd
 	//
-	//  Function to compute a polynomial greatest common divisor 
-	//  in GF(2^m).  m and n are the GF(2^m) polynomials for which 
+	//  Function to compute a polynomial greatest common divisor
+	//  in GF(2^m).  m and n are the GF(2^m) polynomials for which
 	//  the gcd is required.
 	//
 	//  mDeg and nDeg are degrees.
 	//
 	//  This function implements Euclids algorithm.  MY reference is
-	//  page 149 of the Berlekamp book.   
+	//  page 149 of the Berlekamp book.
 	//
-	//  E. Berlekamp (1968), Algebraic Coding Theory, McGraw-Hill. 
+	//  E. Berlekamp (1968), Algebraic Coding Theory, McGraw-Hill.
 	//
 	//****************************************************************
 	//
@@ -1884,58 +1894,58 @@ static int ffPFastGcd(const int mIn[],int mDegIn,const int nIn[],
 	return (0);
 }
 
-static int BTA(const int sigmaN[],int Loc[],const int alogTbl[], 
+static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			   const int logTbl[],const int LnOrig,const int nParm,
 			   const int mParmOdd,const int mParm,const int LogZVal,
 			   const int ffSize)
 {
 	//****************************************************************
-	//	Function: BTA 
+	//	Function: BTA
 	//
-	//  Function that implements the Berlekamp trace method for 
+	//  Function that implements the Berlekamp trace method for
 	//	finding roots of finite field polynomials.  The finite
 	//  field supported by this function is GF(2^m).
 	//
-	//  My references for the BTA algorithm are a paper [4] by 
-	//  Berlekamp and three papers [1,2,3] that discuss a BTA derivative 
-	//  algorithm called BTZ.  In this program I implemented much of the 
-	//  math from BTZ, but instead of implementing the special root 
-	//  finding methods of low degree polynomials by Zinoviev, I 
-	//  implemented alternative methods.  References [1-4] can be found 
-	//  on the internet, but there may be a fee for some of them.	
+	//  My references for the BTA algorithm are a paper [4] by
+	//  Berlekamp and three papers [1,2,3] that discuss a BTA derivative
+	//  algorithm called BTZ.  In this program I implemented much of the
+	//  math from BTZ, but instead of implementing the special root
+	//  finding methods of low degree polynomials by Zinoviev, I
+	//  implemented alternative methods.  References [1-4] can be found
+	//  on the internet, but there may be a fee for some of them.
 	//
 	//  1) V. Herbert. Efficient root finding of polynomials over fields
 	//  of characteristic 2, WEWoRC 2009, INRIA Paris-Rocquencourt.
-	//  2) V. Herbert. Efficient root finding of polynomials over fields 
+	//  2) V. Herbert. Efficient root finding of polynomials over fields
 	//  of characteristic 2, INRIA Paris-Rocquencourt.
-	//  3) B. Biswas, V. Herbert. Efficient root finding of polynomials 
+	//  3) B. Biswas, V. Herbert. Efficient root finding of polynomials
 	//  over fields of characteristic 2, CRI INRIA Paris-Rocquencourt.
-	//  4) E. Berlekamp (1970), Factoring polynomials over large finite 
+	//  4) E. Berlekamp (1970), Factoring polynomials over large finite
 	//  fields, Mathematics of Computation, v. 24, 1970, pp. 713-735.
 	//
-	//  ---Overview of the Berlekamp Trace Algorithm (BTA)---. The BTA 
-	//  as defined by Berlekamp, splits the polynomial to be factored 
-	//  into two factors using a polynomial greatest common divisor 
-	//  (gcd) function.  Each resulting factor is also split into 
-	//  two factors and so on until there exist only degree one factors.  
-	//  To split a polynomial the greatest common divisor function is 
-	//  performed on the polynomial and a trace polynomial that has as 
-	//  its roots about half the elements of the finite field employed.  
-	// 
-	//  It is faster to stop splitting when the degree of a factor falls 
-	//  below a threshold and instead to find the roots of such factors 
-	//  by even faster methods for low degree polynomials. In this 
-	//  function I stop splitting at degree four for even “m” (“m” of 
-	//  GF(2^m)) and at degree two for odd “m”.  I am currently using 
-	//  special root finding algorithms for linear, quadratic, cubic 
-	//  and quartic polynomials.  Perhaps more time could be squeezed 
-	//  out of root finding by stopping the splitting process at degree 
-	//  six or less by using special root finding algorithms for quintic 
+	//  ---Overview of the Berlekamp Trace Algorithm (BTA)---. The BTA
+	//  as defined by Berlekamp, splits the polynomial to be factored
+	//  into two factors using a polynomial greatest common divisor
+	//  (gcd) function.  Each resulting factor is also split into
+	//  two factors and so on until there exist only degree one factors.
+	//  To split a polynomial the greatest common divisor function is
+	//  performed on the polynomial and a trace polynomial that has as
+	//  its roots about half the elements of the finite field employed.
+	//
+	//  It is faster to stop splitting when the degree of a factor falls
+	//  below a threshold and instead to find the roots of such factors
+	//  by even faster methods for low degree polynomials. In this
+	//  function I stop splitting at degree four for even â€œmâ€ (â€œmâ€ of
+	//  GF(2^m)) and at degree two for odd â€œmâ€.  I am currently using
+	//  special root finding algorithms for linear, quadratic, cubic
+	//  and quartic polynomials.  Perhaps more time could be squeezed
+	//  out of root finding by stopping the splitting process at degree
+	//  six or less by using special root finding algorithms for quintic
 	//  and sextic polynomials as well.
 	//
 	//  This function uses several techniques to achieve speed.  For
 	//  example it does not call functions to do finite field multiplies
-	//  or divides, they are done inline.  And at one point a loop is 
+	//  or divides, they are done inline.  And at one point a loop is
 	//  unrolled (straight line coded).  There are still some places in
 	//  the function where speed can be increased a bit.
 	//****************************************************************
@@ -1954,7 +1964,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 	int MResiduesRowHasAZero[MAXMPARM];
 	int degTbl[MAXCORR],alphaTbl[MAXCORR],alphaFlgs[MAXMPARM];
 	int factorA[MAXCORR+1],factorB[MAXCORR+1],currFactor[MAXCORR+1];
-	int workTiModP[MAXCORR],roots[MAXCORR]; 
+	int workTiModP[MAXCORR],roots[MAXCORR];
 	// Note +2.  Need 2 extra spaces cause poly multiplied by x^2
 	int tmpV[MAXCORR+2],tmpVBack[MAXCORR+2];
 	int MResidues[MAXMPARM][MAXCORR];
@@ -1964,7 +1974,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 
 	errFlg=0; // Clear error flag
 	//
-	// Flip "sigmaN" & put in "p" to make input format compatible 
+	// Flip "sigmaN" & put in "p" to make input format compatible
 	// with this function
 	for (kx=0;kx<=LnOrig;kx++){
 		tmpPoly[kx]=sigmaN[kx];
@@ -1975,7 +1985,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 	// ========== CONSTRUCT THE MDblShift MATRIX ===================
 	// Using this matrix does the same thing as shifting twice a finite
 	// field polynomial shift register implementing the poly "p".  Using
-	// the matrix allows the number of multiplies to be cut in about half 
+	// the matrix allows the number of multiplies to be cut in about half
 	// compared to actual shifting of a software shift register twice.
 
 	// Clear "row has a zero" flgs
@@ -1987,9 +1997,9 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 		if (2*kx<LnOrig) {
 			// Initialize row to "0"s, then stuff a "1"
 			for (jx=0;jx<=LnOrig-1;jx++) {
-				MDblShift[kx][jx]=LogZVal; // RHS is log of zero 
+				MDblShift[kx][jx]=LogZVal; // RHS is log of zero
 			}
-			MDblShift[kx][2*kx]=0; // RHS is log of one 
+			MDblShift[kx][2*kx]=0; // RHS is log of one
 			MDblShiftRowHasAZero[kx]=1; // Each of these rows has at least one "0"
 		}else{
 			// Next few lines - Start multiply residue poly by x^2
@@ -1998,9 +2008,9 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			// Finish multiply residue poly by x^2
 			for (jx=0;jx<=LnOrig-1;jx++) {
 				if (MDblShift[kx-1][jx]==LogZVal) {
-					tmpV[jx+2]=0; 
+					tmpV[jx+2]=0;
 				}else{
-					tmpV[jx+2]=alogTbl[MDblShift[kx-1][jx]]; 
+					tmpV[jx+2]=alogTbl[MDblShift[kx-1][jx]];
 				}
 			}
 			// --------------
@@ -2024,8 +2034,8 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 	}
 	// ========== BEGIN USING THE MDblShift MATRIX TO COMPUTE RESIDUES ====================
 	// Residues means residues of Trace(Alpha*z) mod p.
-	// Clear temp vector for first TiModP which is computed as residues 
-	// are computed. This is for first TiModP only, all other TiModP 
+	// Clear temp vector for first TiModP which is computed as residues
+	// are computed. This is for first TiModP only, all other TiModP
 	// vectors are computed in the factor loop.
 	for (kx=0;kx<=LnOrig-1;kx++) {
 		workTiModP[kx]=0;
@@ -2056,16 +2066,16 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 				}
 				workTiModP[jx]=(workTiModP[jx]^v[jx]); // Developing first TiModP
 				// RHS is in log form
-				MResidues[kx1][jx]=logTbl[v[jx]]; 
+				MResidues[kx1][jx]=logTbl[v[jx]];
 			}
 		}
-		// NEXT LINE - THE +1 NEEDED IN BOTH MATLAB AND "C" 
-		if (kx1+1<mParm ) {// This "if" just skips to end of loop on last loop pass 
+		// NEXT LINE - THE +1 NEEDED IN BOTH MATLAB AND "C"
+		if (kx1+1<mParm ) {// This "if" just skips to end of loop on last loop pass
 			for (jx=0;jx<=LnOrig-1;jx++) {
 				if (v[jx]!=0 ) {// Test for zero
 					// Compute square of v().  Input and output are in antilog form.
 					// You can get a further speedup here by using a table to do the
-					// squaring.  Use the element to address the table and read the 
+					// squaring.  Use the element to address the table and read the
 					// square of the element from the table.
 					tmpForSq=logTbl[v[jx]]; // Fetch log
 					v[jx]=alogTbl[tmpForSq+tmpForSq]; // Add logs and fetch alog
@@ -2080,8 +2090,8 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 					accumResidue[2*kx2]=v[kx2];
 				}else{
 					if (v[kx2]>0  ) {// If this operand is "0" then block of code is skipped
-						// Must take log of RHS and use it for the two loops 
-						tmpVk=logTbl[v[kx2]]; 
+						// Must take log of RHS and use it for the two loops
+						tmpVk=logTbl[v[kx2]];
 						if (MDblShiftRowHasAZero[kx2]==1) {
 							// In this loop "need" to test for zero
 							for (kx3=0;kx3<=LnOrig-1;kx3++) {
@@ -2170,7 +2180,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 	}
 	factorTblNxtEntryIdx=1; // Init
 	rootsFoundIdx=0;  // Init
-	// ========== BEGIN PROCESSING FACTORS ============================= 
+	// ========== BEGIN PROCESSING FACTORS =============================
 	while (factorTblCurrPosIdx<factorTblNxtEntryIdx) {
 		// ---------- Once per factor initialization ---------------------
 		// Get, from the table, a factor to split
@@ -2191,7 +2201,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			for (kx0=0;kx0<=LnOrig-1;kx0++) {
 				workTiModP[kx0]=0;
 			}
-			// TiCoeff must be in log form 
+			// TiCoeff must be in log form
 			TiCoeff=logALPHAi;
 			twoToKx1Pwr=1;
 			for (kx1=0;kx1<=mParm-1;kx1++) {
@@ -2201,7 +2211,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 				}else{
 					if (MResiduesRowHasAZero[kx1]==1) {
 						// In this loop "need" to test MResidues(,) for zero
-						// TiCoeff will never be zero - no need to test  
+						// TiCoeff will never be zero - no need to test
 						for (kx2=0;kx2<=LnOrig-1;kx2++) {
 							// The symbol "TiModP" stands for (Trace(ALPHAi*z)) mod p
 							// TiCoeff and MResidues must be logs
@@ -2213,10 +2223,10 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 						}
 					}else{
 						// In this loop do "not" need to test MResidues(,) for zero
-						// TiCoeff will never be zero - no need to test 
+						// TiCoeff will never be zero - no need to test
 						for (kx2=0;kx2<=LnOrig-1;kx2++) {
 							// The symbol "TiModP" stands for (Trace(ALPHAi*z)) mod p
-							// TiCoeff and MResidues must be logs 
+							// TiCoeff and MResidues must be logs
 							// Add logs and fetch alog
 							workTiModP[kx2]=
 								(workTiModP[kx2]^alogTbl[TiCoeff+MResidues[kx1][kx2]]);
@@ -2236,8 +2246,8 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			alphaFlgs[logALPHAi]=1;
 		}
 		for (kx=0;kx<=LnOrig-1;kx++) {
-			workTiModP[kx]=TiModP[logALPHAi][kx];  
-		} 
+			workTiModP[kx]=TiModP[logALPHAi][kx];
+		}
 		// Detect spceial case - Detect TiModP equal all zeros
 		specialCaseFlg=1;
 		for (jx=0;jx<=LnOrig-1;jx++) {
@@ -2247,7 +2257,7 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			}
 		}
 		// Handle special case of residues summing to all zeros
-		// ========== EITHER SPLIT CURRENT FACTOR OR PASS IT ON ========================== 
+		// ========== EITHER SPLIT CURRENT FACTOR OR PASS IT ON ==========================
 		if (specialCaseFlg==1) {
 			// ========== CANNOT SPLIT BECAUSE OF SPECIAL CASE - PASS ON CURRENT FACTOR
 			degA=degTbl[factorTblCurrPosIdx];
@@ -2256,10 +2266,10 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 				factorA[kx]=currFactor[kx];
 			}
 			factorB[0]=1;
-		}else{ 
+		}else{
 			// ========== TRY SPLITTING THE FACTOR ========================================
 			// Use gcd to split currFactor into two factors (factorA and factorB).
-			// NOTE: Since TiModP is a residue its degree in the below 
+			// NOTE: Since TiModP is a residue its degree in the below
 			// call is one less than the degree of the input poly to this function
 			errFlg |= ffPFastGcd(currFactor,degTbl[factorTblCurrPosIdx],
 				workTiModP,LnOrig-1,factorA,&degA,alogTbl,logTbl,nParm);
@@ -2310,13 +2320,13 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			// Call quartic, cubic, quadratic, or linear to find roots
 			if (degA==4) {
 				errFlg|=quarticElp(nParm,tmp,roots,alogTbl); // 4 errors
-			}; 
+			};
 			if (degA==3) {
 				errFlg|=cubicElp(nParm,tmp,roots,alogTbl); // 3 errors
-			};  
+			};
 			if (degA==2) {
 				errFlg|=quadraticElp(tmp,roots); // 2 errors
-			};  
+			};
 			if (degA==1) {
 				linearElp(tmp,roots); // 1 error
 			};
@@ -2369,13 +2379,13 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 			// Call quartic, cubic, quadratic, or linear to find roots
 			if (degB==4) {
 				errFlg|=quarticElp(nParm,tmp,roots,alogTbl); // 4 errors
-			}; 
+			};
 			if (degB==3) {
 				errFlg|=cubicElp(nParm,tmp,roots,alogTbl); // 3 errors
-			};  
+			};
 			if (degB==2) {
 				errFlg|=quadraticElp(tmp,roots); // 2 errors
-			};  
+			};
 			if (degB==1) {
 				linearElp(tmp,roots); // 1 error
 			};
@@ -2402,10 +2412,10 @@ static int BTA(const int sigmaN[],int Loc[],const int alogTbl[],
 		errFlg |= BTANUMROOTSERR;
 	}
 	if (errFlg==0){
-		for (kx1=0;kx1<=LnOrig-1;kx1++) { 
-			for (kx2=kx1+1;kx2<=LnOrig-1;kx2++) { 
+		for (kx1=0;kx1<=LnOrig-1;kx1++) {
+			for (kx2=kx1+1;kx2<=LnOrig-1;kx2++) {
 				if (Loc[kx1]==Loc[kx2]) {
-					return (BTAREPEATEDROOTS); 
+					return (BTAREPEATEDROOTS);
 				}
 			}
 		}
@@ -2423,10 +2433,10 @@ static int rootFindBTA(int sigmaN[],int Loc[],const int alogTbl[], const int log
 	//  NOTE: There are seperate rootFind functions for Chien and BTA.
 	//
 	//  This function is the highest level root finding function.  It calls
-	//  lower level root finding functions.  There are special functions 
-	//  called for error locator polynomial (ELP) degrees 1 to 4 ("m" even) 
-	//  or 1 to 2 ("m" odd).  If the degree of the ELP is greater than 
-	//  4 ("m" even) or 2 ("m" odd) the Chien search function is called.  
+	//  lower level root finding functions.  There are special functions
+	//  called for error locator polynomial (ELP) degrees 1 to 4 ("m" even)
+	//  or 1 to 2 ("m" odd).  If the degree of the ELP is greater than
+	//  4 ("m" even) or 2 ("m" odd) the Chien search function is called.
 	//****************************************************************
 	int errFlg;
 
@@ -2443,7 +2453,7 @@ static int rootFindBTA(int sigmaN[],int Loc[],const int alogTbl[], const int log
 		errFlg=cubicElp(nParm,sigmaN,Loc,alogTbl);
 	}
 	else if (LnOrig==4 && mParmOdd==0){
-		errFlg=quarticElp(nParm,sigmaN,Loc,alogTbl); 
+		errFlg=quarticElp(nParm,sigmaN,Loc,alogTbl);
 	}
 	else
 	{
@@ -2457,7 +2467,7 @@ static int fixErrors(int codeword[],const int Loc[],const int logTbl[],int Ln,in
 					 int numDataBits, int numRedunBits,int nParm)
 {
 	//****************************************************************
-	//	Function: fixErrors 
+	//	Function: fixErrors
 	//
 	//	Function to do the actual correction of errors after error
 	// locations have been found by the decode function.
@@ -2468,7 +2478,7 @@ static int fixErrors(int codeword[],const int Loc[],const int logTbl[],int Ln,in
 	for (kx=0;kx<Ln;kx++){
 		bitLoc = (((numCodewordBytes*8 - logTbl[Loc[kx]])-1)%nParm);
 		// Bounds check fwd displacement because pad bits at end.
-		// Note to Neal.  
+		// Note to Neal.
 		if (bitLoc>=0 && bitLoc<numDataBits+numRedunBits){
 			byteLoc = bitLoc/8;
 			byteBitNum = 7 - (bitLoc % 8);
@@ -2494,7 +2504,7 @@ static int bchDecode(int Loc[],const int alogTbl[], const int logTbl[],int FFSiz
 					 const int LogZVal,const int mParm,const int ffsize)
 {
 	//****************************************************************
-	//	Function: bchDecode 
+	//	Function: bchDecode
 	//
 	//	This function performs decoding by calling -
 	//  - a function to compute a remainder
@@ -2508,17 +2518,17 @@ static int bchDecode(int Loc[],const int alogTbl[], const int logTbl[],int FFSiz
 	//  this function then you may want to remove the test code after
 	//  testing is complete.  All such code is commented "For testing only"
 	//
-	//  Array addresses for syndrome symbols and remainder bytes are passed 
+	//  Array addresses for syndrome symbols and remainder bytes are passed
 	//  to this function but on entry to this function these arrays do not
-	//  contain useful data.  
+	//  contain useful data.
 	//****************************************************************
 	int status,remainderDetdErr,Ln,kx;
 	int sigmaN[MAXCORR+1];
 
 	*pErrFlg=0;
 	status=0;
-	//	Tests three entries of the decode tables to determine	
-	//	if they have been initialized.							
+	//	Tests three entries of the decode tables to determine
+	//	if they have been initialized.
 	for (kx=2;kx<=4;kx++){
 		if (logTbl[alogTbl[FFSize-kx]] != FFSize-kx){
 			*pErrFlg|=TBLNOTINIT;
@@ -2526,7 +2536,7 @@ static int bchDecode(int Loc[],const int alogTbl[], const int logTbl[],int FFSiz
 		}
 	}
 	for (kx=0;kx<MAXCORR;kx++){
-		// Changed to "LogZVal" 9-9-10 
+		// Changed to "LogZVal" 9-9-10
 		Loc[kx]=LogZVal; // Set to log of zero
 	}
 	for(;;){ // Infinite loop - Exit is by "break"
@@ -2569,7 +2579,7 @@ static int bchDecode(int Loc[],const int alogTbl[], const int logTbl[],int FFSiz
 			}
 		}
 		else {
-			for (kx=0;kx<2*tParm;kx++){ 
+			for (kx=0;kx<2*tParm;kx++){
 				syndromes[kx]=0; // Loop for testing only #########################
 			}
 		}
@@ -2584,7 +2594,7 @@ static int bchDecode(int Loc[],const int alogTbl[], const int logTbl[],int FFSiz
 static void printAppliedErrs()
 {
 	//****************************************************************
-	//	Function: printAppliedErrs 
+	//	Function: printAppliedErrs
 	//****************************************************************
 	int kx,bitLocFromEnd;
 
@@ -2608,7 +2618,7 @@ static void printSigmaN()
 	//****************************************************************
 	//	Function: printSigmaN
 	//****************************************************************
-	int kx;	
+	int kx;
 
 	printf("\n***** gblSigmaOrig (Alog format), gblLnOrig*****\n");
 	for (kx=0;kx<=gblLnOrig;kx++){
@@ -2622,7 +2632,7 @@ static int compareResults()
 	//****************************************************************
 	//	Function: compareResults
 	//
-	//	This function compares the saved codeword with the codeword 
+	//	This function compares the saved codeword with the codeword
 	//  after correction and returns the number of miscompares
 	//****************************************************************
 	int kx;
@@ -2710,7 +2720,7 @@ static int ffDiv(int opa, int opb, int *pErrFlg)
 static void printLogAlogTbls()
 {
 	//****************************************************************
-	//	Function: printLogAlogTbls 
+	//	Function: printLogAlogTbls
 	//****************************************************************
 	int kx;
 
@@ -2734,7 +2744,7 @@ static void printLogAlogTbls()
 static void printCgpBits()
 {
 	//****************************************************************
-	//	Function: printCgpBits 
+	//	Function: printCgpBits
 	//
 	//  Prints code generator polynomial bits
 	//****************************************************************
@@ -2843,7 +2853,7 @@ static void printSyndromes()
 static void printLocs()
 {
 	//****************************************************************
-	//	Function: printLocs 
+	//	Function: printLocs
 	//
 	//	Function to print error locations
 	//****************************************************************
@@ -2877,7 +2887,7 @@ static void printLocs()
 static void printMiscompares()
 {
 	//****************************************************************
-	//	Function: printMiscompares 
+	//	Function: printMiscompares
 	//****************************************************************
 	int kx;
 
@@ -2889,14 +2899,14 @@ static void printMiscompares()
 	}
 }
 static struct statAndFCnt bchEval(int CWsPerPass,
-								  unsigned int mySeed, int randomDataFlg, 
+								  unsigned int mySeed, int randomDataFlg,
 								  int doCompareFlg,int *pErrFlg,
 								  int minErrsToSim,int maxErrsToSim)
 {
 	//***************************************************************
 	//	Function: bchEval
 	//
-	//	Function to test the bch encoding and decoding functions 
+	//	Function to test the bch encoding and decoding functions
 	//***************************************************************
 	int dcdStatus,statusExpd,evalStatus;
 	int numErrsSimed,misCompareCnt,CWCntr;
@@ -2910,9 +2920,9 @@ static struct statAndFCnt bchEval(int CWsPerPass,
 	randomSetSeed(mySeed);
 	for (CWCntr=0;CWCntr<CWsPerPass;CWCntr++){
 		if (randomDataFlg==1){
-			// Generate a random data record						
+			// Generate a random data record
 			genWriteData();
-			// Encode the random data record		
+			// Encode the random data record
 			bchEncode(gblEncodeTbl,gblCodeword,gblNumRedunWords,
 				gblNumRedunBytes,gblNumDataBytes);
 		}
@@ -2920,9 +2930,9 @@ static struct statAndFCnt bchEval(int CWsPerPass,
 			// Clear the write codeword
 			clearWriteCW();//The all 0's CW is a valid CW, no need encode this path
 		}
-		// Save the encoded data buffer		
+		// Save the encoded data buffer
 		savCodeword();
-		// Set expected status							
+		// Set expected status
 		statusExpd=0;
 		// Go pick and apply random errors
 		numErrsSimed=applyErrors(minErrsToSim,maxErrsToSim);
@@ -2962,7 +2972,7 @@ static struct statAndFCnt bchEval(int CWsPerPass,
 			// Note: No return in this path because we will keep looping
 		}
 		if (doCompareFlg==1){
-			misCompareCnt=compareResults(); 
+			misCompareCnt=compareResults();
 			if (misCompareCnt>0 && statusExpd<UNCORR){
 				//		Return error - 7x
 				evalStatus=(COMPAREERR+dcdStatus);
@@ -2979,7 +2989,7 @@ static struct statAndFCnt bchEval(int CWsPerPass,
 static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 {
 	//****************************************************************
-	//	Function: correctCWsFromDisk 
+	//	Function: correctCWsFromDisk
 	//
 	//	This function is used to correct codewords from disk.
 	//  And on option to write corrected codewords back to disk.
@@ -2989,7 +2999,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 	char inFileName[100];
 	char outFileName[100];
 	time_t timeStart,timeEnd; // "time_t" is a "typedef" defined in "time.h"
-	//                This is in "time.h" -> "typedef long time_t;" 
+	//                This is in "time.h" -> "typedef long time_t;"
 	FILE *infp,*outfp; // --type FILE--    File pointers
 	int k1,k2,loops,junk,tmp,errFlg;
 	int dcdStatus,errFreeCnt,correctableCnt,unCorrectableCnt;
@@ -3001,7 +3011,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 	correctableCnt=0;
 	unCorrectableCnt=0;
 	do{
-		printf("\nEnter # CWs to read and correct from disk.");  
+		printf("\nEnter # CWs to read and correct from disk.");
 		printf("\nMust be less than or eq # CWs on disk and # CWs * CW length");
 		printf("\nin bytes must be less than or eq to %d.\n",MAXFILESIZE);
 		(void)scanf_s("%d", &numDiskCodewords);
@@ -3010,7 +3020,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 	do {
 		printf("\nEnter file path and name for READING - Example - C://Folder/File.bin.\n");
 		// Was unsuccessful in using scanf_s at this point
-		scanf("%s", inFileName); // No "&" - already addr 
+		scanf("%s", inFileName); // No "&" - already addr
 		infp=fopen(inFileName,"rb");
 		if (infp==0){
 			printf("*****OPEN ERROR ON READ INPUT FILE*****\n");
@@ -3046,7 +3056,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 		for (k1=0;k1<=numDiskCodewords-1;k1++){
 			for (k2=0;k2<gblNumCodewordBytes;k2++){
 				// Copy CW from gblFileBuff to global CW array
-				gblCodeword[k2]=fileBuff[k1*gblNumCodewordBytes+k2]; 
+				gblCodeword[k2]=fileBuff[k1*gblNumCodewordBytes+k2];
 			}
 			dcdStatus=bchDecode(gblLoc,gblAlogTbl,gblLogTbl,gblFFSize,gblTParm,
 				gblNumCodewordBytes,gblNParm,gblMParmOdd,
@@ -3056,7 +3066,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 			if (toDoCode==2) { // If to write corrected CWs back to disk
 				for (k2=0;k2<gblNumCodewordBytes;k2++){
 					// Copy corrected CW array back to gblFileBuff
-					fileBuff[k1*gblNumCodewordBytes+k2]=(unsigned char)gblCodeword[k2]; 
+					fileBuff[k1*gblNumCodewordBytes+k2]=(unsigned char)gblCodeword[k2];
 				}
 			}
 			if (loops==loopAllCWsCnt && dcdStatus==0){
@@ -3082,7 +3092,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 			printf("\nEnter file path and name for WRITING - Example - C://Folder/File.bin.");
 			printf("\nThe file must be a new file - existing files will not be overwritten.\n");
 			// Was unsuccessful in using scanf_s at this point
-			(void)scanf("%s", outFileName);// No "&" - already addr of array 
+			(void)scanf("%s", outFileName);// No "&" - already addr of array
 			outfp=fopen(outFileName,"rb"); // See if file for writing exists already
 			if (outfp!=0){ // If the file for writing already exists
 				fclose(outfp);
@@ -3099,7 +3109,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 		printf("\n**** YOU ARE ABOUT TO WRITE THE FILE - %s ****",outFileName);
 		printf("\n**** IF YOU DO NOT WANT TO WRITE THIS FILE, TERMINATE THIS PROGRAM ****");
 		printf("\n**** IF YOU WISH TO WRITE THE FILE - ENTER ANY NUMBER ****\n");
-		(void)scanf_s("%d", &junk);	
+		(void)scanf_s("%d", &junk);
 		writeLength=readLength;
 		numElements=1;
 		count=fwrite(fileBuff,writeLength,numElements,outfp);//No "&" - already addr
@@ -3120,7 +3130,7 @@ static void correctCWsFromDisk(int toDoCode,int loopAllCWsCnt)
 static void wrtTestCWsToDisk(int randomDataFlg,int minErrsToSim, int maxErrsToSim)
 {
 	//****************************************************************
-	//	Function: wrtTestCWsToDisk() 
+	//	Function: wrtTestCWsToDisk()
 	//
 	//	This function is used to write test codewords to disk.
 	//****************************************************************
@@ -3133,7 +3143,7 @@ static void wrtTestCWsToDisk(int randomDataFlg,int minErrsToSim, int maxErrsToSi
 	size_t count,writeLength,numElements;
 	time_t timeForSeed;
 	do{
-		printf("\nEnter # test CWs to generate, apply errors, & wrt to disk.");  
+		printf("\nEnter # test CWs to generate, apply errors, & wrt to disk.");
 		printf("\n(The # of CWs) * (CW length)in bytes must be less than");
 		printf("\nor eq to %d.\n",MAXFILESIZE);
 		(void)scanf_s("%d", &numDiskCodewords);
@@ -3144,11 +3154,11 @@ static void wrtTestCWsToDisk(int randomDataFlg,int minErrsToSim, int maxErrsToSi
 	(void)time(&timeForSeed); //timeForSeed is a type "time_t" which is type long
 	seed=(unsigned int)(timeForSeed % 2147483647); // Constant is 2^31-1
 	randomSetSeed(seed);
-	for (k1=0;k1<=numDiskCodewords-1;k1++){ 
+	for (k1=0;k1<=numDiskCodewords-1;k1++){
 		if (randomDataFlg==1){
-			// Generate a random data record						
+			// Generate a random data record
 			genWriteData();
-			// Encode the random data record		
+			// Encode the random data record
 			bchEncode(gblEncodeTbl,gblCodeword,gblNumRedunWords,
 				gblNumRedunBytes,gblNumDataBytes);
 		}
@@ -3161,7 +3171,7 @@ static void wrtTestCWsToDisk(int randomDataFlg,int minErrsToSim, int maxErrsToSi
 		// We have a test codeword, now put it in the file buffer
 		for (k2=0;k2<gblNumCodewordBytes;k2++){
 			// Copy test CW array to the file buffer
-			fileBuff[k1*gblNumCodewordBytes+k2]=(unsigned char)gblCodeword[k2]; 
+			fileBuff[k1*gblNumCodewordBytes+k2]=(unsigned char)gblCodeword[k2];
 		}
 	}
 	// Finished putting all the test CWs in the file buffer
@@ -3170,7 +3180,7 @@ static void wrtTestCWsToDisk(int randomDataFlg,int minErrsToSim, int maxErrsToSi
 		printf("\nEnter file path and name for WRITING - Example - C://Folder/File.bin.");
 		printf("\nThe file must be a new file - existing files will not be overwritten.\n");
 		// Was unsuccessful in using scanf_s at this point
-		(void)scanf("%s", outFileName);//No "&" - already addr  
+		(void)scanf("%s", outFileName);//No "&" - already addr
 		outfp=fopen(outFileName,"rb"); // See if file for writing exists already
 		if (outfp!=0){ // If the file for writing already exists
 			fclose(outfp);
@@ -3187,11 +3197,11 @@ static void wrtTestCWsToDisk(int randomDataFlg,int minErrsToSim, int maxErrsToSi
 	printf("\n**** YOU ARE ABOUT TO WRITE THE FILE - %s ****",outFileName);
 	printf("\n**** IF YOU DO NOT WANT TO WRITE THIS FILE, TERMINATE THIS PROGRAM ****");
 	printf("\n**** IF YOU WISH TO WRITE THE FILE - ENTER ANY NUMBER ****\n");
-	(void)scanf_s("%d", &junk);	
+	(void)scanf_s("%d", &junk);
 	writeLength=(size_t)(numDiskCodewords*gblNumCodewordBytes);
 	numElements=1;
 	count=fwrite(fileBuff,writeLength,numElements,outfp);//No "&" - already addr
-	if (count!=numElements){ 
+	if (count!=numElements){
 		printf("\nFile write error");
 		fclose(outfp);
 		printf("\n-----ENTER ANY NUMBER TO EXIT-----\n");
@@ -3211,12 +3221,12 @@ int main()
 	//
 	//	This is the main function.  It obtains most of the options
 	//  from the user.  It calls "correctCWsFromDisk" if the options
-	//  indicate that codewords from disk should be corrected.  
-	//  Otherwise it calls "bchEval" to encode random data, add errors, 
+	//  indicate that codewords from disk should be corrected.
+	//  Otherwise it calls "bchEval" to encode random data, add errors,
 	//  and perform correction.  Timing data and statistics are printed.
 	//
 	//  In this function the little code snippets that get user inputs
-	//  was motivated by similar code in the Robert Morelos-Zaragoza 
+	//  was motivated by similar code in the Robert Morelos-Zaragoza
 	//  bch decoder on the "ECC Page" web site.
 	//****************************************************************
 	struct statAndFCnt statusAndFCnt;
@@ -3242,7 +3252,7 @@ int main()
 	printf("\n\nFast Encoder-Decoder for binary BCH codes using parallel");
 	printf("\ntechniques for encode and syndrome generation.\n");
 	printf("\nCopyright (C) Neal Glover 1999,2000,2008,2010,2011 (boglover@msn.com).\n");
-	printf("\nSee the source code for the license grant and warranty disclaimer"); 
+	printf("\nSee the source code for the license grant and warranty disclaimer");
 	printf("\nand for restrictions on the free license.");
 	printf("\n-----------------------------------------------------------------");
 	printf("\nCodewords are in byte format on disk.  Highest order byte is");
@@ -3267,7 +3277,7 @@ int main()
 		printf("\nfile on disk.\n");
 		(void)scanf_s("%d", &toDoCode);
 	}while ((toDoCode/10>3 || toDoCode/10<0) || ((toDoCode/10)!=(toDoCode % 10)));
-	toDoCode=toDoCode % 10; 
+	toDoCode=toDoCode % 10;
 	if (toDoCode==0){
 		printf("\nAt the end of each pass the pgm will print pass info.  This info");
 		printf("\nincludes 4 counts that are accumulated over all passes in a run.");
@@ -3316,7 +3326,7 @@ int main()
 	gblMParmOdd = gblMParm % 2;
 	gblNParm=gblFFSize - 1;	// n = (2^m)-1
 	// Ask if user wishes to specify the primitive polynomial for the finite field
-	// Added next line 9-9-2010 
+	// Added next line 9-9-2010
 	gblLogZVal=2*gblNParm;
 	do{
 		printf("\nEnter primitive polynomial in decimal (Example- enter 67 for 1000011).");
@@ -3343,7 +3353,7 @@ int main()
 	printf("\ngblFFPoly=%d  gblFFSize=%d\n",gblFFPoly,gblFFSize);
 	bchInit();  // GENERATE LOG AND ALOG TABLES
 	initStatus = chkLogAlogTbls();
-	if (initStatus>ZERO){		
+	if (initStatus>ZERO){
 		printf("\n***** ERROR IN bchInit. *****  initStatus %d.",initStatus);
 		printf("\nThe polynomial you entered several steps above may be");
 		printf("\nNON-primitive or it may have been entered incorrectly.");
@@ -3354,8 +3364,8 @@ int main()
 	}
 	tmp=genCodeGenPoly();// GENERATE CODE GENERATOR POLYNOMIAL (CGP)
 	// Call or previous line will set gblCgpDegree
-	if (tmp!=0){	
-		printf("\n***** Fatal error in cgp generation *****  error flag %d.",tmp); 
+	if (tmp!=0){
+		printf("\n***** Fatal error in cgp generation *****  error flag %d.",tmp);
 		printf("\n************ ENTER ANY NUMBER TO EXIT ***********\n");
 		(void)scanf_s("%d",&junk);
 		return(0);
@@ -3401,14 +3411,14 @@ int main()
 				printf("\nEnter 1 for random data.");
 				printf("\nEnter 0 for all zeros data and to skip encoding.");
 				printf("\nChoose 0 if you want to time decode only.\n");
-				(void)scanf_s("%d", &randomDataFlg);		
+				(void)scanf_s("%d", &randomDataFlg);
 			}while (randomDataFlg!=0 && randomDataFlg!=1);
 		}
 		else{ // Do this if toDoCode==3
 			do{
 				printf("\nEnter 1 for random data.");
 				printf("\nEnter 0 for all zeros data.\n");
-				(void)scanf_s("%d", &randomDataFlg);		
+				(void)scanf_s("%d", &randomDataFlg);
 			}while (randomDataFlg!=0 && randomDataFlg!=1);
 		}
 	}
@@ -3420,7 +3430,7 @@ int main()
 			printf("\nseed must be >0 and <=4294967295.  This will");
 			printf("\ncontrol the seed for the 1st pass only, after");
 			printf("\nthat it will be random.\n");
-			(void)scanf_s("%d", &userSeed);	 	
+			(void)scanf_s("%d", &userSeed);
 		}
 		do{
 			printf("\nEnter # of codewords to generate per pass.");
@@ -3439,7 +3449,7 @@ int main()
 			printf("\nEnter 1 to compare corrected CW with original.");
 			printf("\nEnter 0 to skip the compare for MORE ACCURATE timings.\n");
 			(void)scanf_s("%d", &doCompareFlg);
-		}while (doCompareFlg!=0 && doCompareFlg!=1);	
+		}while (doCompareFlg!=0 && doCompareFlg!=1);
 	}
 	loopAllCWsCnt=1; // For all cases except toDoCode==1
 	if (toDoCode==1){//If to rd CWs from disk
@@ -3509,7 +3519,7 @@ int main()
 				printSyndromes();
 				printSigmaN();
 				printLocs();
-				printMiscompares(); 
+				printMiscompares();
 				printf("\nerrFlg(hex) %x  gblMParmOdd %d",
 					errFlg,gblMParmOdd);
 				do{
@@ -3529,6 +3539,8 @@ int main()
 			}
 			else
 			{
+				printOrigCodeword();
+				printCodeword();
 				printf("\nNO FAILURES OF THE SOFTWARE ON THIS PASS.");
 				printf("\nFOR EACH CASE THE STATUS RECEIVED MATCHED THE EXPECTED STATUS.");
 			}
