@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FastBchEnDecR400.cpp">
+    <ClCompile Include="bch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
